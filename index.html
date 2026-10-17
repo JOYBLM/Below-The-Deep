@@ -37,7 +37,7 @@ html,body{height:100%;overflow:hidden;background:var(--ink);color:var(--ice);fon
 #modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(1,6,12,.7);z-index:5}
 #modal.on{display:flex}
 .box{width:min(560px,100%);max-height:90vh;overflow:auto;background:#07202e;border:1px solid rgba(228,246,251,.35);border-radius:3px;padding:26px}
-.box h3{font-weight:600;font-size:1.4rem;margin-bottom:6px}.box>p{opacity:.75;margin-bottom:18px}
+.box h2{font-weight:600;font-size:1.4rem;margin-bottom:6px}.box>p{opacity:.75;margin-bottom:18px}
 .opt{display:block;width:100%;font:inherit;color:inherit;text-align:left;padding:14px 16px;margin-bottom:10px;background:rgba(228,246,251,.06);border:1px solid rgba(228,246,251,.3);border-radius:3px;cursor:pointer}
 .opt:hover,.opt:focus-visible{border-color:var(--teal);background:rgba(79,183,199,.16);outline:none}
 .opt.h{border-color:rgba(255,107,94,.6)}.opt.h:hover,.opt.h:focus-visible{background:rgba(255,107,94,.18);border-color:var(--red)}
@@ -46,6 +46,7 @@ html,body{height:100%;overflow:hidden;background:var(--ink);color:var(--ice);fon
 dl{display:grid;grid-template-columns:auto 1fr;gap:8px 22px;margin-bottom:18px}dt{opacity:.7}dd{text-align:right}
 #game{flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;background:#02080f}
 #game h2{font-weight:300;font-size:clamp(1.5rem,4vw,2.2rem)}#game p{max-width:46ch;opacity:.75}
+.row{justify-content:center}.box .row+.row,#saves .row,#game .row{margin-top:10px}#menu .row .btn{flex:none;min-width:230px;padding:.8em 2.6em}.row .btn.quiet{flex:0 0 auto;min-width:0;padding:.5em 1em}
 @media(max-width:640px){#grid{grid-template-columns:repeat(2,minmax(0,1fr))}.slot{min-height:96px;padding:14px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -55,15 +56,12 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:8px 22px;margin-bottom:18px}d
 <main id="menu" class="screen on">
   <div id="logo"><div class="sub">Below the</div>
     <div class="word" aria-label="Deep"><span class="up">DEEP</span><span class="dn" aria-hidden="true">DEEP</span><i class="wl"></i></div></div>
-  <div class="btns"><button class="btn" id="play">Play</button><span class="note">Version 0.1, menu prototype</span></div>
+  <div class="btns" id="mbtns"></div>
 </main>
 
-<section id="saves" class="screen">
-  <h2>Choose a save slot</h2><p>Pick an empty slot to start a new game.</p>
-  <div id="grid"></div><button class="btn quiet" id="back">Back to menu</button>
-</section>
+<section id="saves" class="screen"></section>
 
-<section id="game" class="screen"><h2 id="gt"></h2><p id="gp"></p><button class="btn" id="gb">Back to save slots</button></section>
+<section id="game" class="screen"></section>
 <div id="modal"><div class="box" id="box"></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -71,7 +69,7 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:8px 22px;margin-bottom:18px}d
 /* ---------- Ocean scene ---------- */
 const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true});
 R.setPixelRatio(Math.min(devicePixelRatio,2));
-const S=new THREE.Scene(),cam=new THREE.PerspectiveCamera(60,1,.1,1500);
+const S=new THREE.Scene(),cam=new THREE.PerspectiveCamera(60,1,.1,1500),rig=new THREE.Group();S.add(rig);rig.add(cam);R.xr.enabled=true;
 const HOR='vec3(.78,.42,.33)',SUN='normalize(vec3(-.35,.1,-1.))';
 const sky=new THREE.Mesh(new THREE.SphereGeometry(900,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
  vertexShader:'varying vec3 d;void main(){d=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -96,50 +94,123 @@ const ocean=new THREE.Mesh(g,new THREE.ShaderMaterial({uniforms:U,
 S.add(ocean);
 function size(){R.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.fov=innerWidth/innerHeight<.8?75:60;cam.updateProjectionMatrix()}
 addEventListener('resize',size);size();
-const tb=document.getElementById('tb'),still=matchMedia('(prefers-reduced-motion:reduce)').matches;
-let T=0,fr=0,last=performance.now();
-function loop(now){requestAnimationFrame(loop);const dt=Math.min((now-last)/1000,.1);last=now;if(!still)T+=dt;
- U.t.value=T;cam.position.set(0,1.7+Math.sin(T*.9)*.14,0);cam.rotation.set(-.08+Math.sin(T*.7)*.006,0,Math.sin(T*.6)*.012);
- U.cam.value.copy(cam.position);R.render(S,cam);
- if(++fr%3===0)tb.setAttribute('baseFrequency','0.012 '+(.08+Math.sin(T*1.1)*.016).toFixed(4));}
-requestAnimationFrame(loop);
+const tb=document.getElementById('tb'),$=id=>document.getElementById(id),still=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const FONT='"Gill Sans","Gill Sans MT",Candara,"Trebuchet MS",sans-serif',COL={survival:'#4fb7c7',hardcore:'#ff6b5e',creative:'#b9e68a'};
 
-/* ---------- Saves ---------- */
-const KEY='btd_saves_v1',N=6,$=id=>document.getElementById(id);
+/* ---------- Saves and UI state (shared by browser and VR) ---------- */
+const KEY='btd_saves_v1',N=6;
 const load=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(s)&&s.length===N)return s}catch(e){}return Array(N).fill(null)};
 const store=()=>{try{localStorage.setItem(KEY,JSON.stringify(saves))}catch(e){}};
-let saves=load();
-const cap=s=>s[0].toUpperCase()+s.slice(1);
-const fmt=m=>m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min';
-function show(id){document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===id))}
-function modal(html){$('box').innerHTML=html;$('modal').classList.add('on');const f=$('box').querySelector('button');f&&f.focus()}
-function close(){$('modal').classList.remove('on')}
-$('modal').addEventListener('click',e=>{if(e.target.id==='modal')close()});
-addEventListener('keydown',e=>{if(e.key==='Escape')close()});
-function render(){const gr=$('grid');gr.innerHTML='';saves.forEach((s,i)=>{const b=document.createElement('button');b.className='slot'+(s?' '+s.mode:'');
- b.innerHTML=s?`<em>${cap(s.mode)}</em><b>Slot ${i+1}</b><span>Day ${s.day}, ${fmt(s.time)}</span>`:`<b>Slot ${i+1}</b><span>Empty</span>`;
- b.onclick=()=>s?slotMenu(i):modePick(i);gr.append(b)})}
-function modePick(i){modal(`<h3>New game in slot ${i+1}</h3><p>Choose how you want to survive.</p>
- <button class="opt" data-m="survival"><b>Survival</b><span>Hunger, thirst and oxygen. If you die, you respawn at the lifeboat.</span></button>
- <button class="opt h" data-m="hardcore"><b>Hardcore</b><span>Survival with tougher creatures and no respawns. One death ends the run.</span></button>
- <button class="opt" data-m="creative"><b>Creative</b><span>No threats, free building, and you can skip the intro.</span></button>
- <button class="btn quiet" data-x>Cancel</button>`);
- $('box').onclick=e=>{const o=e.target.closest('[data-m],[data-x]');if(!o)return;if(o.dataset.x!==undefined)return close();
-  saves[i]={mode:o.dataset.m,created:Date.now(),day:1,time:0,deepest:0,crafted:0,deaths:0};store();close();render();startGame(i)}}
-function slotMenu(i){const s=saves[i];modal(`<h3>Slot ${i+1}: ${cap(s.mode)}</h3><p>Day ${s.day}, ${fmt(s.time)} played.</p>
- <div class="row"><button class="btn" data-a="play">Play</button><button class="btn" data-a="stats">Stats</button><button class="btn red" data-a="del">Delete</button></div>
- <button class="btn quiet" data-a="x" style="margin-top:12px">Close</button>`);
- $('box').onclick=e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
-  if(k==='x')close();else if(k==='play'){close();startGame(i)}else if(k==='stats')stats(i);else if(k==='del')confirmDel(i)}}
-function stats(i){const s=saves[i];modal(`<h3>Stats for slot ${i+1}</h3><p>${cap(s.mode)} mode</p><dl>
- <dt>Started</dt><dd>${new Date(s.created).toLocaleDateString()}</dd><dt>Time played</dt><dd>${fmt(s.time)}</dd>
- <dt>Days survived</dt><dd>${s.day}</dd><dt>Deepest dive</dt><dd>${s.deepest} m</dd>
- <dt>Items crafted</dt><dd>${s.crafted}</dd><dt>Deaths</dt><dd>${s.deaths}</dd></dl><button class="btn" data-a="b">Back</button>`);
- $('box').onclick=e=>{if(e.target.closest('[data-a]'))slotMenu(i)}}
-function confirmDel(i){modal(`<h3>Delete slot ${i+1}?</h3><p>This removes the save for good. You can’t undo it.</p>
- <div class="row"><button class="btn red" data-a="y">Delete save</button><button class="btn" data-a="n">Keep save</button></div>`);
- $('box').onclick=e=>{const a=e.target.closest('[data-a]');if(!a)return;if(a.dataset.a==='y'){saves[i]=null;store();render();close()}else slotMenu(i)}}
-function startGame(i){const s=saves[i];$('gt').textContent=`Slot ${i+1}, ${cap(s.mode)}`;
- $('gp').textContent=s.mode==='creative'?'Creative mode skips the intro. The lifeboat and the open ocean come in the next step.':'The night on the boat starts here. The intro scene comes in the next step.';show('game')}
-$('play').onclick=()=>{render();show('saves')};$('back').onclick=()=>show('menu');$('gb').onclick=()=>{render();show('saves')};
+let saves=load(),scr='main',mod=null,info=null,vr=false,xrOK=false,dirty=true,hover=null,hits=[];
+const cap=s=>s[0].toUpperCase()+s.slice(1),fmt=m=>m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min';
+const go=n=>{scr=n;mod=null;ui()},shut=()=>{mod=null;ui()};
+function screen(){
+ if(scr==='saves')return{title:'Choose a save slot',text:'Pick an empty slot to start a new game.',
+  cards:saves.map((s,i)=>({l:'Slot '+(i+1),sub:s?`Day ${s.day}, ${fmt(s.time)}`:'Empty',tag:s?cap(s.mode):'',cls:s?s.mode:'',fn:()=>s?slotMenu(i):modePick(i)})),
+  btns:[{l:'Back to menu',cls:'quiet',fn:()=>go('main')}]};
+ if(scr==='game')return{title:info.t,text:info.p,btns:[{l:'Back to save slots',fn:()=>go('saves')}]};
+ const b=[{l:'Play',fn:()=>go('saves')}];
+ if(xrOK&&!vr)b.push({l:'Enter VR',fn:enterVR});
+ if(vr)b.push({l:'Exit VR',cls:'quiet',fn:()=>{const s=R.xr.getSession();s&&s.end()}});
+ return{bg:false,btns:b};
+}
+function modePick(i){mod={title:`New game in slot ${i+1}`,text:'Choose how you want to survive.',
+ opts:[['Survival','Hunger, thirst, oxygen. You respawn at the lifeboat.','survival'],['Hardcore','Tougher creatures and no respawns. One death ends the run.','hardcore'],['Creative','No threats, free building, intro can be skipped.','creative']]
+ .map(o=>({l:o[0],sub:o[1],cls:o[2]==='hardcore'?'h':'',fn:()=>{saves[i]={mode:o[2],created:Date.now(),day:1,time:0,deepest:0,crafted:0,deaths:0};store();start(i)}})),
+ btns:[{l:'Cancel',cls:'quiet',fn:shut}]};ui()}
+function slotMenu(i){const s=saves[i];mod={title:`Slot ${i+1}: ${cap(s.mode)}`,text:`Day ${s.day}, ${fmt(s.time)} played.`,
+ btns:[{l:'Play',fn:()=>start(i)},{l:'Stats',fn:()=>stats(i)},{l:'Delete',cls:'red',fn:()=>confirmDel(i)},{l:'Close',cls:'quiet',fn:shut}]};ui()}
+function stats(i){const s=saves[i];mod={title:`Stats for slot ${i+1}`,text:cap(s.mode)+' mode',rows:[['Started',new Date(s.created).toLocaleDateString()],['Time played',fmt(s.time)],['Days survived',s.day],['Deepest dive',s.deepest+' m'],['Items crafted',s.crafted],['Deaths',s.deaths]],btns:[{l:'Back',fn:()=>slotMenu(i)}]};ui()}
+function confirmDel(i){mod={title:`Delete slot ${i+1}?`,text:'This removes the save for good. You can’t undo it.',
+ btns:[{l:'Delete save',cls:'red',fn:()=>{saves[i]=null;store();shut()}},{l:'Keep save',fn:()=>slotMenu(i)}]};ui()}
+function start(i){const s=saves[i];info={t:`Slot ${i+1}, ${cap(s.mode)}`,p:s.mode==='creative'?'Creative mode skips the intro. The lifeboat and the open ocean come in the next step.':'The night on the boat starts here. The intro scene comes in the next step.'};scr='game';mod=null;ui()}
+
+/* ---------- Browser renderer ---------- */
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function html(d,el){const f=[],reg=fn=>f.push(fn)-1;let h='';
+ if(d.title)h+=`<h2>${esc(d.title)}</h2>`;if(d.text)h+=`<p>${esc(d.text)}</p>`;
+ if(d.rows)h+='<dl>'+d.rows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')+'</dl>';
+ if(d.cards)h+='<div id="grid">'+d.cards.map(c=>`<button class="slot ${c.cls}" data-f="${reg(c.fn)}">${c.tag?`<em>${c.tag}</em>`:''}<b>${c.l}</b><span>${c.sub}</span></button>`).join('')+'</div>';
+ if(d.opts)h+=d.opts.map(o=>`<button class="opt ${o.cls}" data-f="${reg(o.fn)}"><b>${o.l}</b><span>${o.sub}</span></button>`).join('');
+ const bt=d.btns||[],bh=b=>`<button class="btn ${b.cls||''}" data-f="${reg(b.fn)}">${b.l}</button>`;
+ const nb=bt.filter(b=>b.cls!=='quiet'),qb=bt.filter(b=>b.cls==='quiet');
+ if(nb.length)h+=`<div class="row">${nb.map(bh).join('')}</div>`;if(qb.length)h+=`<div class="row">${qb.map(bh).join('')}</div>`;
+ el.innerHTML=h;el.onclick=e=>{const b=e.target.closest('[data-f]');if(b)f[+b.dataset.f]()}}
+function ui(){const d=screen();
+ document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===(scr==='main'?'menu':scr)));
+ if(scr==='main'){html(d,$('mbtns'));$('mbtns').insertAdjacentHTML('beforeend','<span class="note">Version 0.2, with VR menu</span>')}else html(d,$(scr));
+ if(mod){html(mod,$('box'));$('modal').classList.add('on');const b=$('box').querySelector('button');b&&b.focus()}else $('modal').classList.remove('on');
+ lg.visible=scr==='main';dirty=true}
+$('modal').onclick=e=>{if(e.target.id==='modal')shut()};addEventListener('keydown',e=>{if(e.key==='Escape'&&mod)shut()});
+
+/* ---------- VR: panel, logo, controller rays ---------- */
+const vg=new THREE.Group(),lg=new THREE.Group();vg.visible=false;rig.add(vg);vg.add(lg);
+const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
+const PW=1024,PH=640,pc=mk(PW,PH),px=pc.getContext('2d'),ptex=new THREE.CanvasTexture(pc);
+const mat=t=>new THREE.MeshBasicMaterial({map:t,transparent:true,depthTest:false});
+const pm=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.5),mat(ptex));pm.position.set(0,1.3,-1.9);pm.rotation.x=-.12;pm.renderOrder=10;vg.add(pm);
+/* logo: drawn once, split at the waterline; the lower half is redrawn with a ripple so it shows through the water */
+const LW=1024,LH=600,WY=445,lc=mk(LW,LH),lx=lc.getContext('2d'),tc=mk(LW,WY),bc=mk(LW,LH-WY),bx=bc.getContext('2d');
+lx.textAlign='center';lx.fillStyle='#e4f6fb';lx.font='300 54px '+FONT;if('letterSpacing' in lx)lx.letterSpacing='20px';lx.fillText('Below the',LW/2+10,140);
+const gr=lx.createLinearGradient(0,324,0,540);gr.addColorStop(0,'#fff');gr.addColorStop(1,'#bfe9f1');
+lx.fillStyle=gr;lx.font='600 300px '+FONT;if('letterSpacing' in lx)lx.letterSpacing='30px';lx.fillText('DEEP',LW/2+15,540);
+tc.getContext('2d').drawImage(lc,0,0,LW,WY,0,0,LW,WY);
+const btex=new THREE.CanvasTexture(bc),SC=6/LW,JY=.35;
+function ripple(t){const h=LH-WY;bx.globalCompositeOperation='source-over';bx.clearRect(0,0,LW,h);
+ for(let y=0;y<h;y+=2)bx.drawImage(lc,0,WY+y,LW,2,Math.sin(y*.09+t*2.2)*7+Math.sin(y*.23-t*1.4)*3,y,LW,2);
+ bx.globalCompositeOperation='source-atop';const g=bx.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(90,200,215,.95)');g.addColorStop(1,'rgba(35,110,135,.75)');
+ bx.fillStyle=g;bx.fillRect(0,0,LW,h);btex.needsUpdate=true}
+const lt=new THREE.Mesh(new THREE.PlaneGeometry(LW*SC,WY*SC),mat(new THREE.CanvasTexture(tc))),lb=new THREE.Mesh(new THREE.PlaneGeometry(LW*SC,(LH-WY)*SC),mat(btex));
+const ll=new THREE.Mesh(new THREE.PlaneGeometry(7,.025),new THREE.MeshBasicMaterial({color:0xe4f6fb,transparent:true,opacity:.85,depthTest:false}));
+lt.position.y=JY+WY*SC/2;lb.position.y=JY-(LH-WY)*SC/2;ll.position.y=JY;[lt,lb,ll].forEach(m=>{m.renderOrder=9;lg.add(m)});lg.position.z=-8;ripple(0);
+
+const rr=(x,y,w,h,fill,stroke)=>{px.beginPath();px.roundRect?px.roundRect(x,y,w,h,6):px.rect(x,y,w,h);px.fillStyle=fill;px.fill();if(stroke){px.strokeStyle=stroke;px.lineWidth=2;px.stroke()}};
+const wrap=(t,m)=>{const L=[];let c='';t.split(' ').forEach(w=>{const n=c?c+' '+w:w;if(px.measureText(n).width>m&&c){L.push(c);c=w}else c=n});L.push(c);return L};
+function hit(x,y,w,h,id,fn,live){if(live)hits.push({x,y,w,h,id,fn});return live&&hover===id}
+function lay(d,X,W,live,tag,y){const cx=X+W/2,pad=36;px.textAlign='center';
+ if(d.title){px.fillStyle='#e4f6fb';px.font='600 44px '+FONT;px.fillText(d.title,cx,y+40);y+=62}
+ if(d.text){px.fillStyle='rgba(228,246,251,.75)';px.font='28px '+FONT;wrap(d.text,W-2*pad).forEach(l=>{px.fillText(l,cx,y+30);y+=36});y+=14}
+ if(d.rows){px.font='30px '+FONT;d.rows.forEach(r=>{px.textAlign='left';px.fillStyle='rgba(228,246,251,.7)';px.fillText(r[0],X+pad+40,y+30);px.textAlign='right';px.fillStyle='#e4f6fb';px.fillText(String(r[1]),X+W-pad-40,y+30);y+=44});y+=10}
+ if(d.cards){const g=16,cw=(W-2*pad-2*g)/3,ch=138;d.cards.forEach((c,i)=>{const x=X+pad+(i%3)*(cw+g),yy=y+Math.floor(i/3)*(ch+g),hv=hit(x,yy,cw,ch,tag+'c'+i,c.fn,live);
+  rr(x,yy,cw,ch,hv?'rgba(79,183,199,.3)':'rgba(228,246,251,.07)',hv?'#4fb7c7':c.cls==='hardcore'?'rgba(255,107,94,.65)':'rgba(228,246,251,.3)');
+  px.textAlign='left';if(c.tag){px.fillStyle=COL[c.cls];px.font='22px '+FONT;px.fillText(c.tag,x+18,yy+34)}
+  px.fillStyle='#e4f6fb';px.font='600 30px '+FONT;px.fillText(c.l,x+18,yy+78);px.fillStyle='rgba(228,246,251,.75)';px.font='24px '+FONT;px.fillText(c.sub,x+18,yy+112)});
+  y+=Math.ceil(d.cards.length/3)*(ch+g)+6}
+ if(d.opts)d.opts.forEach((o,i)=>{const x=X+pad,w=W-2*pad,hv=hit(x,y,w,88,tag+'o'+i,o.fn,live);
+  rr(x,y,w,88,hv?(o.cls?'rgba(255,107,94,.25)':'rgba(79,183,199,.3)'):'rgba(228,246,251,.07)',hv?'#e4f6fb':o.cls?'rgba(255,107,94,.65)':'rgba(228,246,251,.3)');
+  px.textAlign='left';px.fillStyle='#e4f6fb';px.font='600 30px '+FONT;px.fillText(o.l,x+20,y+37);px.fillStyle='rgba(228,246,251,.75)';px.font='21px '+FONT;px.fillText(o.sub,x+20,y+68);y+=98});
+ const bt=d.btns||[],nb=bt.filter(b=>b.cls!=='quiet'),qb=bt.filter(b=>b.cls==='quiet');
+ if(nb.length){const bw=Math.min(300,(W-2*pad-(nb.length-1)*14)/nb.length),x0=cx-(nb.length*bw+(nb.length-1)*14)/2;
+  nb.forEach((b,i)=>{const x=x0+i*(bw+14),hv=hit(x,y,bw,70,tag+'b'+i,b.fn,live),rd=b.cls==='red';
+   rr(x,y,bw,70,hv?(rd?'rgba(255,107,94,.3)':'rgba(79,183,199,.35)'):'rgba(3,16,26,.6)',hv?'#e4f6fb':rd?'#ff6b5e':'rgba(228,246,251,.6)');
+   px.textAlign='center';px.fillStyle='#e4f6fb';px.font='30px '+FONT;px.fillText(b.l,x+bw/2,y+45)});y+=84}
+ qb.forEach((b,i)=>{const hv=hit(cx-110,y,220,56,tag+'q'+i,b.fn,live);if(hv)rr(cx-110,y,220,56,'rgba(228,246,251,.12)');
+  px.textAlign='center';px.fillStyle=hv?'#fff':'rgba(228,246,251,.8)';px.font='26px '+FONT;px.fillText(b.l,cx,y+37);y+=60})}
+function drawVR(){hits=[];px.clearRect(0,0,PW,PH);const d=screen();
+ if(d.bg===false)lay(d,0,PW,!mod,'m',PH-250);else{rr(0,0,PW,PH,'rgba(2,10,18,.86)','rgba(228,246,251,.35)');lay(d,0,PW,!mod,'s',34)}
+ if(mod){if(d.bg!==false)rr(0,0,PW,PH,'rgba(1,6,12,.55)');rr(102,40,820,560,'#07202e','rgba(228,246,251,.45)');lay(mod,102,820,true,'d',74)}
+ ptex.needsUpdate=true;dirty=false}
+const rc=new THREE.Raycaster(),tm=new THREE.Matrix4();
+const ctl=[0,1].map(i=>{const c=R.xr.getController(i),l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-1)]),new THREE.LineBasicMaterial({color:0xe4f6fb,transparent:true,opacity:.7}));
+ c.add(l);c.userData.l=l;c.visible=false;rig.add(c);c.addEventListener('connected',()=>c.visible=true);c.addEventListener('disconnected',()=>c.visible=false);
+ c.addEventListener('selectstart',()=>{const p=pick(c);if(p&&p.hit)p.hit.fn()});return c});
+function pick(c){if(!vg.visible||!c.visible)return null;tm.identity().extractRotation(c.matrixWorld);rc.ray.origin.setFromMatrixPosition(c.matrixWorld);rc.ray.direction.set(0,0,-1).applyMatrix4(tm);
+ const h=rc.intersectObject(pm)[0];if(!h)return null;const x=h.uv.x*PW,y=(1-h.uv.y)*PH;return{h,hit:hits.find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)}}
+
+/* ---------- WebXR session ---------- */
+if(navigator.xr)navigator.xr.isSessionSupported('immersive-vr').then(ok=>{xrOK=ok;ui()}).catch(()=>{});
+function enterVR(){R.xr.setReferenceSpaceType('local-floor');navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor']}).then(s=>R.xr.setSession(s)).catch(e=>alert('Could not start VR: '+e.message))}
+R.xr.addEventListener('sessionstart',()=>{vr=true;vg.visible=true;ui()});
+R.xr.addEventListener('sessionend',()=>{vr=false;vg.visible=false;size();ui()});
+
+/* ---------- Main loop ---------- */
+let T=0,fr=0,last=0;const v3=new THREE.Vector3();
+R.setAnimationLoop(now=>{const dt=Math.min((now-(last||now))/1000,.1);last=now;if(!still)T+=dt;U.t.value=T;rig.position.y=Math.sin(T*.9)*.14;
+ if(vr){v3.setFromMatrixPosition(R.xr.getCamera(cam).matrixWorld);
+  let nh=null;ctl.forEach(c=>{const p=pick(c);c.userData.l.scale.z=p?p.h.distance:3;if(p&&p.hit)nh=p.hit.id});if(nh!==hover){hover=nh;dirty=true}
+  if(scr==='main'&&++fr%3===0)ripple(T);if(dirty)drawVR()}
+ else{cam.position.set(0,1.7,0);cam.rotation.set(-.08+Math.sin(T*.7)*.006,0,Math.sin(T*.6)*.012);v3.set(0,1.7+rig.position.y,0);
+  if(++fr%3===0)tb.setAttribute('baseFrequency','0.012 '+(.08+Math.sin(T*1.1)*.016).toFixed(4))}
+ U.cam.value.copy(v3);R.render(S,cam)});
+ui();
 </script></body></html>
