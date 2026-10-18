@@ -389,7 +389,7 @@ const fadeM=new THREE.Mesh(new THREE.SphereGeometry(.6,12,8),new THREE.MeshBasic
 const cc=mk(768,160),ccx=cc.getContext('2d'),ctex=new THREE.CanvasTexture(cc),capP=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.31),new THREE.MeshBasicMaterial({map:ctex,transparent:true,depthTest:false,fog:false}));capP.renderOrder=41;capP.visible=false;S.add(capP);
 function drawCap(t){ccx.clearRect(0,0,768,160);ccx.fillStyle='rgba(2,10,18,.62)';ccx.fillRect(0,0,768,160);ccx.fillStyle='#e4f6fb';ccx.font='36px '+FONT;ccx.textAlign='center';
  const L=[];let l='';t.split(' ').forEach(w=>{if(l&&ccx.measureText(l+' '+w).width>700){L.push(l);l=w}else l=l?l+' '+w:w});L.push(l);L.forEach((s,i)=>ccx.fillText(s,384,(L.length>1?62:92)+i*48));ctex.needsUpdate=true}
-function say(t,d){CS.cap=t;CS.capT=d;drawCap(t);$('cap').textContent=t;$('cap').style.opacity=1}
+function say(t,d,n){const b=n&&BUF[n];let dur=d;if(b&&AC){const v=AC.createBufferSource();v.buffer=b;v.connect(VG);v.start();VOICE.end=AC.currentTime+b.duration;dur=Math.max(d,b.duration+.6)}CS.cap=t;CS.capT=dur;drawCap(t);$('cap').textContent=t;$('cap').style.opacity=1}
 function blink(fn){CS.ft=1;CS.fs=3.5;CS.after=fn}
 function overlay(dt){const d=CS.ft-CS.fade;CS.fade+=Math.sign(d)*Math.min(Math.abs(d),CS.fs*dt);
  if(CS.fade>=1&&CS.after){const f=CS.after;CS.after=null;f();CS.ft=0;CS.fs=2.5}
@@ -397,57 +397,78 @@ function overlay(dt){const d=CS.ft-CS.fade;CS.fade+=Math.sign(d)*Math.min(Math.a
  if(CS.capT>0){CS.capT-=dt;if(CS.capT<=0)$('cap').style.opacity=0}
  capP.visible=vr&&CS.capT>0;if(capP.visible){const fl=Math.hypot(fw.x,fw.z)||1;capP.position.set(v3.x+fw.x/fl*1.6,v3.y-.45,v3.z+fw.z/fl*1.6);capP.lookAt(v3)}}
 /* sound: everything is synthesized, no files */
-let AC=null,AM=null,amb=null;
+let AC=null,AM=null,amb=null,SG=null,VG=null,ambSrc=null;
 const nz=sec=>{const b=AC.createBuffer(1,AC.sampleRate*sec,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b};
-function audio(){try{if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();AM=AC.createGain();AM.gain.value=.9;AM.connect(AC.destination);
+function audio(){try{if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();AM=AC.createGain();AM.gain.value=.9;AM.connect(AC.destination);SG=AC.createGain();SG.connect(AM);VG=AC.createGain();VG.connect(AM);
  const s=AC.createBufferSource(),f=AC.createBiquadFilter(),lf=AC.createOscillator(),lg2=AC.createGain();s.buffer=nz(4);s.loop=true;f.type='lowpass';f.frequency.value=420;amb=AC.createGain();amb.gain.value=0;
- s.connect(f);f.connect(amb);amb.connect(AM);s.start();lf.frequency.value=.12;lg2.gain.value=140;lf.connect(lg2);lg2.connect(f.frequency);lf.start()}
- AC.state==='suspended'&&AC.resume()}catch(e){AC=null}}
-function out(p){if(!p)return AM;const n=AC.createPanner();n.panningModel='HRTF';n.refDistance=5;n.rolloffFactor=.7;if(n.positionX){n.positionX.value=p.x;n.positionY.value=p.y;n.positionZ.value=p.z}else n.setPosition(p.x,p.y,p.z);n.connect(AM);return n}
+ s.connect(f);f.connect(amb);amb.connect(AM);s.start();ambSrc=s;lf.frequency.value=.12;lg2.gain.value=140;lf.connect(lg2);lg2.connect(f.frequency);lf.start()}
+ AC.state==='suspended'&&AC.resume();if(AC&&!loadAudio.done){loadAudio.done=1;loadAudio()}}catch(e){AC=null}}
+function out(p){if(!p)return SG;const n=AC.createPanner();n.panningModel='HRTF';n.refDistance=5;n.rolloffFactor=.7;if(n.positionX){n.positionX.value=p.x;n.positionY.value=p.y;n.positionZ.value=p.z}else n.setPosition(p.x,p.y,p.z);n.connect(SG);return n}
 function env(g,t,a,d,pk){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(pk,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+Math.max(d,.05))}
 function noise(o,t,dur,ft,f0,f1,q,pk,a){const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=nz(dur+.2);f.type=ft;f.Q.value=q;f.frequency.setValueAtTime(f0,t);f.frequency.linearRampToValueAtTime(f1,t+dur);s.connect(f);f.connect(g);g.connect(o);env(g,t,a,dur-a,pk);s.start(t);s.stop(t+dur+.2)}
 function tone(o,t,type,f0,f1,dur,pk,lp,a){const q=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();q.type=type;q.frequency.setValueAtTime(f0,t);q.frequency.linearRampToValueAtTime(f1,t+dur);f.frequency.value=lp;q.connect(f);f.connect(g);g.connect(o);env(g,t,a,dur-a,pk);q.start(t);q.stop(t+dur+.1)}
-function snd(k,p){if(!AC)return;const t=AC.currentTime,o=out(p);
- if(k==='scrape'){noise(o,t,7,'bandpass',180,700,3,.9,1.5);tone(o,t,'sawtooth',70,42,6,.35,220,1.5)}
+function snd(k,p){if(!AC)return;const bf=pickBuf(k);if(bf){const s=AC.createBufferSource();s.buffer=bf;s.connect(out(p));s.start();return}const t=AC.currentTime,o=out(p);
+ if(k==='scrape'){noise(o,t,7,'bandpass',160,620,4,.7,1.2);for(let i=0;i<16;i++){const tt=t+.4+i*.38+Math.random()*.2,f=300+Math.random()*900;noise(o,tt,.3,'bandpass',f,f*.6,12,.35,.03)}
+  tone(o,t,'sawtooth',62,38,6.5,.3,200,1.2);tone(o,t+.5,'sawtooth',118,74,5.5,.12,420,1)}
  else if(k==='boom'){tone(o,t,'sine',60,28,2.2,1,300,.03);noise(o,t,1.4,'lowpass',500,80,1,.8,.03)}
  else if(k==='alarm'){for(let i=0;i<10;i++)tone(o,t+i*.5,'square',i%2?330:440,i%2?330:440,.4,.16,1800,.02)}
  else if(k==='creak'){tone(o,t,'sawtooth',90+Math.random()*40,60,2.5,.4,320,.4);noise(o,t,2.5,'bandpass',140,90,6,.5,.4)}
- else if(k==='scream'){tone(o,t,'sawtooth',620,1100,.9,.6,3000,.05);tone(o,t+.1,'sawtooth',640,1180,.8,.35,2500,.05)}
+ else if(k==='scream'){noise(o,t,.25,'bandpass',1800,2500,1,.25,.02);const t1=t+.18,q=AC.createOscillator(),lf=AC.createOscillator(),ld=AC.createGain(),vg=AC.createGain();
+  q.type='sawtooth';q.frequency.setValueAtTime(480,t1);q.frequency.linearRampToValueAtTime(960,t1+.35);q.frequency.linearRampToValueAtTime(760,t1+1.3);lf.frequency.value=6;ld.gain.value=35;lf.connect(ld);ld.connect(q.frequency);
+  [[900,4],[1500,5],[2800,6]].forEach(a=>{const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=a[0];f.Q.value=a[1];q.connect(f);f.connect(vg)});
+  vg.connect(o);vg.gain.setValueAtTime(0,t1);vg.gain.linearRampToValueAtTime(1.1,t1+.04);vg.gain.setValueAtTime(1.1,t1+1.1);vg.gain.linearRampToValueAtTime(0,t1+1.4);q.start(t1);lf.start(t1);q.stop(t1+1.5);lf.stop(t1+1.5);
+  noise(o,t1,1.3,'highpass',3000,3500,.7,.18,.05)}
  else if(k==='splash')noise(o,t,1.1,'highpass',1500,600,.7,.9,.02);
  else if(k==='rumble')noise(o,t,4,'lowpass',200,60,1,.7,1)}
 function listen(f){if(!AC)return;const L=AC.listener;if(L.positionX){L.positionX.value=v3.x;L.positionY.value=v3.y;L.positionZ.value=v3.z;L.forwardX.value=f.x;L.forwardY.value=f.y;L.forwardZ.value=f.z;L.upX.value=0;L.upY.value=1;L.upZ.value=0}else{L.setPosition(v3.x,v3.y,v3.z);L.setOrientation(f.x,f.y,f.z,0,1,0)}}
+/* ---------- Audio files: your own recordings replace the synthesized sounds ---------- */
+const BUF={},VOICE={end:0},SFXN=['scrape','boom','alarm','creak','creak2','creak3','scream','splash','rumble','ambient'],VON=Array.from({length:11},(_,i)=>'voice_'+String(i+1).padStart(2,'0'));
+async function loadOne(n){for(const e of ['mp3','ogg','wav']){try{const r=await fetch('audio/'+n+'.'+e);if(!r.ok)continue;BUF[n]=await AC.decodeAudioData(await r.arrayBuffer());if(n==='ambient')useAmbient();return}catch(x){}}}
+function loadAudio(){SFXN.concat(VON).forEach(loadOne)}
+function useAmbient(){try{ambSrc&&ambSrc.stop()}catch(e){}const s=AC.createBufferSource();s.buffer=BUF.ambient;s.loop=true;s.connect(amb);s.start();ambSrc=s}
+function pickBuf(k){if(k==='creak'){const c=['creak','creak2','creak3'].filter(n=>BUF[n]);return c.length?BUF[c[Math.floor(Math.random()*c.length)]]:null}return BUF[k]||null}
+function voiceBusy(){return !!AC&&VOICE.end+.35>AC.currentTime}
+function silence(){if(!AC)return;SG.disconnect();SG=AC.createGain();SG.connect(AM);VG.disconnect();VG=AC.createGain();VG.connect(AM);VOICE.end=0}
+function soundTest(){const d=document.createElement('div');d.style.cssText='position:fixed;left:8px;top:8px;z-index:60;max-height:92vh;overflow:auto;padding:10px;background:rgba(2,10,18,.88);border:1px solid #4fb7c7;font:13px monospace;color:#e4f6fb;max-width:300px';
+ d.innerHTML='<b>Sound test</b><br>Put files in the audio folder (mp3, ogg or wav). Green = your file is loaded.<br>';document.body.append(d);
+ const rows=SFXN.concat(VON).map(n=>{const b=document.createElement('button');b.style.cssText='display:block;width:100%;margin:3px 0;text-align:left;font:inherit;padding:4px 6px;background:#0b2a3a;color:inherit;border:1px solid #345;cursor:pointer';
+  b.onclick=()=>{audio();if(!AC)return;if(n.startsWith('voice_')){if(BUF[n]){const s=AC.createBufferSource();s.buffer=BUF[n];s.connect(VG);s.start()}}else if(n==='ambient'){}else snd(n.replace(/\d$/,''),null)};d.append(b);return[n,b]});
+ const upd=()=>rows.forEach(r=>{const ok=!!BUF[r[0]],syn=SFXN.includes(r[0])&&r[0]!=='creak2'&&r[0]!=='creak3'&&r[0]!=='ambient';r[1].textContent=(ok?'● ':'○ ')+r[0]+(ok?' (file)':syn?' (synth)':' (no file)');r[1].style.borderColor=ok?'#5f5':'#345'});upd();setInterval(upd,800);
+ const g=document.createElement('button');g.textContent='Load files now';g.style.cssText='margin-top:6px;font:inherit;padding:4px 8px';g.onclick=()=>{audio()};d.append(g)}
+
+
 /* timeline */
 const SH={x:11,t0:18.8,len:8.4},YP=(x,z)=>({x,y:0,z});
 const EV=[
  [.3,()=>{CS.ft=0;CS.fs=.5}],
  [.5,()=>say(vr?'Squeeze the grip to skip the intro.':coarse?'Tap Skip to skip the intro.':'Press Enter to skip the intro.',3)],
- [4,()=>say('A summer night on the open sea, with four of your friends.',4)],
- [8.2,()=>say('Everyone is laughing. The water is perfectly calm.',2.8)],
+ [4,()=>say('A summer night on the open sea, with four of your friends.',4,'voice_01'),1],
+ [8.2,()=>say('Everyone is laughing. The water is perfectly calm.',2.8,'voice_02'),1],
  [11.3,()=>{snd('scrape',{x:0,y:-3,z:0});CS.shake=.25}],
- [11.8,()=>say('Something is scraping along the hull…',4)],
+ [11.8,()=>say('Something is scraping along the hull…',4,'voice_03'),1],
  [14,()=>{CS.shake=.7}],
  [16.2,()=>blink(()=>{CS.at='rail';PL.yaw=-PI/2;PL.pitch=0;CS.shake=0})],
- [17.6,()=>say('What was that?',2.2)],
+ [17.6,()=>say('What was that?',2.2,'voice_04'),1],
  [18.8,()=>{CS.sh=true}],
- [19.6,()=>say('Something huge is moving under the ship.',3.5)],
+ [19.6,()=>say('Something huge is moving under the ship.',3.5,'voice_05'),1],
  [23,()=>{snd('boom',{x:11,y:-2,z:0});CS.heave=1;CS.shake=.9}],
- [23.4,()=>say('A massive shadow, sliding away beneath the waves…',4)],
+ [23.4,()=>say('A massive shadow, sliding away beneath the waves…',4,'voice_06'),1],
  [25,()=>{CS.shake=0}],
- [27.4,()=>{snd('alarm',{x:0,y:3,z:2});snd('creak',{x:0,y:0,z:0});CS.tilt=CS.t;say('The hull is breached! Get to the lifeboat!',4)}],
+ [27.4,()=>{snd('alarm',{x:0,y:3,z:2});snd('creak',{x:0,y:0,z:0});CS.tilt=CS.t}],
+ [27.6,()=>say('The hull is breached! Get to the lifeboat!',4,'voice_07'),1],
  [30.6,()=>{CS.ft=1;CS.fs=1.2}],
  [32.3,()=>{CS.at='boat';boat.visible=true;npcs[3].visible=true;ynp.forEach(n=>n.visible=false);PL.yaw=.2;PL.pitch=0;CS.ft=0;CS.fs=.5;snd('rumble')}],
- [34.8,()=>say('Everyone made it onto one lifeboat.',4)],
+ [34.8,()=>say('Everyone made it onto one lifeboat.',4,'voice_08'),1],
  [36,()=>snd('creak',{x:-5,y:0,z:-24})],
- [41,()=>say('You watch your ship slip beneath the dark water.',4.5)],
+ [41,()=>say('You watch your ship slip beneath the dark water.',4.5,'voice_09'),1],
  [44,()=>snd('creak',{x:-5,y:0,z:-24})],
  [49,()=>snd('creak',{x:-5,y:-3,z:-24})],
  [56.5,()=>{FS.t=0;FS.grab=false;fish.visible=true;splash(-14,6)}],
- [60.8,()=>say('One of your friends is gone.',4)],
- [65.2,()=>say('The sea is silent again. Stay alive.',4)],
- [69.5,()=>{CS.ft=1;CS.fs=1}],
- [71.2,()=>endCut()]];
+ [60.8,()=>say('One of your friends is gone.',4,'voice_10'),1],
+ [65.2,()=>say('The sea is silent again. Stay alive.',4,'voice_11'),1],
+ [69.5,()=>{CS.ft=1;CS.fs=1;CS.endAt=CS.t+1.7},1]];
 const cl01=v=>Math.max(0,Math.min(1,v));
-function cutTick(dt){CS.t+=dt;while(CS.ev<EV.length&&CS.t>=EV[CS.ev][0])EV[CS.ev++][1]();
+function cutTick(dt){CS.t+=dt;EV.forEach((e,i)=>{if(CS.done[i]||CS.t<e[0]||(e[2]&&voiceBusy()))return;CS.done[i]=1;e[1]()});if(CS.endAt&&CS.t>=CS.endAt){CS.endAt=0;endCut()}
  const j=()=>(Math.random()-.5)*CS.shake;
  if(CS.at!=='boat'){const hv=CS.heave*Math.sin(CS.t*7);CS.heave*=1-Math.min(1,dt*1.2);const ti=CS.tilt?cl01((CS.t-CS.tilt)/4):0;
   yacht.position.set(0,wh(0,0,T)*.4-.1,0);yacht.rotation.set(-ti*.2+j()*.02,0,Math.sin(T*.8)*.02+hv*.08+j()*.03+ti*.12);
@@ -467,13 +488,14 @@ function cutTick(dt){CS.t+=dt;while(CS.ev<EV.length&&CS.t>=EV[CS.ev][0])EV[CS.ev
  for(let i=rings.length-1;i>=0;i--){const m=rings[i];m.userData.t+=dt;const k=m.userData.t/1.3;m.scale.setScalar(1+k*9);m.material.opacity=Math.max(0,.8*(1-k));if(k>=1){WG.remove(m);rings.splice(i,1)}}
  if(vr){R.xr.getCamera(cam).matrixWorld.decompose(tp,tq,ts);fw.set(0,0,-1).applyQuaternion(tq)}else fw.set(-Math.sin(PL.yaw)*Math.cos(PL.pitch),Math.sin(PL.pitch),-Math.cos(PL.yaw)*Math.cos(PL.pitch));
  listen(fw)}
-function startCut(i){Object.assign(CS,{t:0,ev:0,fade:1,ft:1,fs:.5,after:null,at:'deck',shake:0,heave:0,flick:0,tilt:0,sh:false,capT:0});FS.t=-1;
+function startCut(i){Object.assign(CS,{done:[],endAt:0,t:0,ev:0,fade:1,ft:1,fs:.5,after:null,at:'deck',shake:0,heave:0,flick:0,tilt:0,sh:false,capT:0});FS.t=-1;VOICE.end=0;
  yacht.visible=true;ynp.forEach(n=>n.visible=true);boat.visible=false;boat.attach(npcs[3]);npcs[3].position.set(-.6,0,-1);npcs[3].rotation.set(0,0,0);npcs[3].visible=true;
  fish.visible=false;glowM.visible=darkM.visible=false;floats.forEach(f=>f.m.visible=false);PL.yaw=0;PL.pitch=0;scr='cut'}
-function endCut(){const s=saves[PL.cur];if(s){s.introDone=true;store()}yacht.visible=false;fish.visible=false;glowM.visible=darkM.visible=false;boat.visible=true;npcs[3].visible=false;
+function endCut(){silence();const s=saves[PL.cur];if(s){s.introDone=true;store()}yacht.visible=false;fish.visible=false;glowM.visible=darkM.visible=false;boat.visible=true;npcs[3].visible=false;
  floats.forEach(f=>f.m.visible=true);CS.fade=1;CS.ft=0;CS.fs=.8;CS.capT=0;CS.after=null;$('cap').style.opacity=0;rings.forEach(m=>WG.remove(m));rings.length=0;
  PL.yaw=0;PL.pitch=0;respawn();scr='play';toast('Stay close to the boat. Find food and water, and be careful how deep you go.');ui()}
 
+if(/[?&]sfx/.test(location.search))soundTest();
 /* ---------- Main loop ---------- */
 let T=0,fr=0,last=0;const v3=new THREE.Vector3();
 R.setAnimationLoop(now=>{try{const dt=Math.min((now-(last||now))/1000,.1);last=now;if(!still)T+=dt;U.t.value=T;const gm=scr==='play'||scr==='pause'||scr==='cut';if(gm){rig.position.set(PL.x,PL.y+(vr?cal.e:0),PL.z);rig.rotation.y=PL.yaw}else{rig.position.set(0,Math.sin(T*.9)*.14+(vr?cal.e:0),0);rig.rotation.y=0}
