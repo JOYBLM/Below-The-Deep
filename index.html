@@ -93,7 +93,7 @@ S.add(sky);
 const H=`float h(vec2 p,float t){return sin(p.x*.35+t*.9)*.38+sin(p.y*.5-t*.7+p.x*.2)*.26+sin((p.x+p.y)*.8+t*1.5)*.1;}`;
 const U={t:{value:0},uN:NU,cam:{value:new THREE.Vector3()}};
 const g=new THREE.PlaneGeometry(1200,1200,260,260);g.rotateX(-Math.PI/2);
-const ocean=new THREE.Mesh(g,new THREE.ShaderMaterial({uniforms:U,
+const ocean=new THREE.Mesh(g,new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:U,
  vertexShader:`uniform float t;varying vec3 vW;varying vec3 vN;${H}
  void main(){vec4 w=modelMatrix*vec4(position,1.);vec2 p=w.xz;float e=.15;w.y+=h(p,t);
  vN=normalize(vec3(h(p-vec2(e,0.),t)-h(p+vec2(e,0.),t),2.*e,h(p-vec2(0.,e),t)-h(p+vec2(0.,e),t)));vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
@@ -173,11 +173,11 @@ function html(d,el){const f=[],reg=fn=>f.push(fn)-1;let h='';
  el.innerHTML=h;el.onclick=e=>{const b=e.target.closest('[data-f]');if(b)f[+b.dataset.f]()}}
 function ui(){const d=scrDesc();
  document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===(scr==='main'?'menu':scr)));
- if(scr==='main'){html(d,$('mbtns'));$('mbtns').insertAdjacentHTML('beforeend','<span class="note">Version 0.3, lifeboat</span>')}else if($(scr))html(d,$(scr));
+ if(scr==='main'){html(d,$('mbtns'));$('mbtns').insertAdjacentHTML('beforeend','<span class="note">'+VERSION+'</span>')}else if($(scr))html(d,$(scr));
  if(mod){html(mod,$('box'));$('modal').classList.add('on');const b=$('box').querySelector('button');b&&b.focus()}else $('modal').classList.remove('on');
  const gm=scr==='play'||scr==='pause'||scr==='inv'||scr==='chest'||scr==='note'||scr==='craft'||scr==='journal'||scr==='end'||scr==='rescue'||scr==='cut';lg.visible=scr==='main';if(saves[PL.cur])refreshBoat();WG.visible=gm;NU.value=gm?1:0;
  hemi.color.setHex(gm?0x6f8fd0:0xffd9c0);hemi.groundColor.setHex(gm?0x040c18:0x0b2a3a);hemi.intensity=gm?.5:.9;fill.visible=rim.visible=!gm;moon.visible=gm;
- if(!gm){S.fog=null;uw.visible=false;headL.visible=false;ocean.visible=true}
+ if(!gm){S.fog=null;uw.visible=false;headL.visible=false;ocean.visible=true;FARUW=0;if(cam.far!==1500){cam.far=1500;cam.updateProjectionMatrix()}uw.scale.setScalar(1)}
  $('hud').classList.toggle('on',(scr==='play'||scr==='cut'||scr==='rescue')&&!vr);$('hud').classList.toggle('cutm',scr==='cut'||scr==='rescue');$('hud').classList.toggle('cre',PL.mode==='creative');hudPs.forEach(m=>{if(m)m.visible=scr==='play'&&!!m.userData.left});pm.visible=vr&&scr!=='play'&&scr!=='cut'&&scr!=='rescue';if(amb)amb.gain.setTargetAtTime(gm?.3:0,AC.currentTime,.5);dirty=true}
 $('modal').onclick=e=>{if(e.target.id==='modal')shut()};addEventListener('keydown',e=>{if(e.key==='Escape'&&mod)shut()});
 
@@ -311,7 +311,7 @@ for(let i=0;i<60;i++){const x=rnd(-70,70),z=rnd(-70,70),k=new THREE.Mesh(new THR
 const floats=[];for(let i=0;i<6;i++){const a=rnd(0,6.28),d=rnd(8,30),food=i%2===0,m=new THREE.Mesh(food?new THREE.BoxGeometry(.4,.3,.4):new THREE.CylinderGeometry(.22,.22,.5,8),mt(food?0xe8b04a:0x4a8fe8,.5));
  m.position.set(Math.cos(a)*d,0,Math.sin(a)*d);WG.add(m);floats.push({m,food})}
 const uw=new THREE.Mesh(new THREE.SphereGeometry(300,16,12),new THREE.MeshBasicMaterial({color:0x0a4560,side:THREE.BackSide,fog:false,vertexColors:true}));
-{const ug=uw.geometry,up=ug.attributes.position,uc=new Float32Array(up.count*3);for(let i=0;i<up.count;i++){const y=up.getY(i)/300,m=y>0?1+.7*y:1+.55*y;uc[i*3]=uc[i*3+1]=uc[i*3+2]=m}ug.setAttribute('color',new THREE.BufferAttribute(uc,3))}
+{const ug=uw.geometry,up=ug.attributes.position,uc=new Float32Array(up.count*3);for(let i=0;i<up.count;i++){const y=up.getY(i)/300,m=y>0?1+.3*y:1+.35*y;uc[i*3]=uc[i*3+1]=uc[i*3+2]=m}ug.setAttribute('color',new THREE.BufferAttribute(uc,3))}
 uw.visible=false;uw.renderOrder=-1;S.add(uw);
 const fogU=new THREE.FogExp2(0x0a4560,.04),headL=new THREE.PointLight(0x9fe3ff,.9,16,2),moon=new THREE.DirectionalLight(0x9ab8ff,.8),c0=new THREE.Color(0x072f45),c1=new THREE.Color(0x000609);
 headL.visible=false;moon.position.set(4,8,-6);moon.visible=false;S.add(headL,moon);
@@ -324,7 +324,7 @@ function toast(t){PL.toast=t;PL.tt=4}
 function respawn(){leviReset();PL.vx=PL.vy=PL.vz=0;PL.noBoard=0;boat.position.set(BT.x,wh(BT.x,BT.z,T)*.8-.05,BT.z);boat.rotation.y=BT.yaw;{const w=bW(.6,.9);PL.x=w.x;PL.z=w.z}PL.helm=0;BT.v=0;PL.y=boat.position.y+.35;PL.o2=100;PL.fd=Math.max(PL.fd,60);PL.wt=Math.max(PL.wt,60);PL.hp=100}
 function initPlay(i){const s=saves[i];Object.assign(PL,{cur:i,mode:s.mode,yaw:0,pitch:0,o2:100,fd:100,wt:100,hp:100,t:0,sv:0,base:s.time,vx:0,vy:0,vz:0,noBoard:0,hint:0,chest:-1,sel:null,helm:0});{const b0=s.boat||{};BT.x=b0.x||0;BT.z=b0.z||0;BT.yaw=b0.yaw||0;BT.fuelT=b0.fuelT||0;BT.v=0;const bb=s.beacon||{};BEACON.on=!!bb.on;BEACON.p=bb.p||0}respawn();npcs[3].visible=false;loot.forEach((l,i)=>{l.taken=!!l.removed||(s.looted||[]).includes(i);l.m.visible=!l.taken});
  toast(vr?'Left stick swims, right stick turns. A or X opens your backpack, the left menu button pauses.':coarse?'Drag the left side to move and the right side to look. Tap Bag for your backpack.':'Click to look around. WASD to swim, Space up, Shift down. I opens your backpack.')}
-function saveNow(){const s=saves[PL.cur];if(s){s.time=PL.base+Math.floor(PL.t/60);s.boat={x:+BT.x.toFixed(1),z:+BT.z.toFixed(1),yaw:+BT.yaw.toFixed(3),fuelT:Math.round(BT.fuelT)};s.beacon={on:BEACON.on,p:Math.round(BEACON.p)};store()}}
+function saveNow(){const s=saves[PL.cur];if(s){s.time=PL.base+Math.floor(PL.t/60);s.boat={x:+BT.x.toFixed(1),z:+BT.z.toFixed(1),yaw:+BT.yaw.toFixed(3),fuelT:Math.round(BT.fuelT)};s.beacon={on:BEACON.on,p:Math.round(BEACON.p)};s.ver='0.9.0';store()}}
 function die(msg){const s=saves[PL.cur];s.deaths++;
  if(PL.mode==='hardcore'){saves[PL.cur]=null;store();info={t:'Your run is over',p:msg+' Hardcore saves can’t be restored.'};scr='game';mod=null;document.exitPointerLock&&document.exitPointerLock();ui()}
  else{store();respawn();toast(msg+' You wake up on the lifeboat.')}}
@@ -348,7 +348,7 @@ function inputs(){let mx=(keys.KeyD?1:0)-(keys.KeyA?1:0),mz=(keys.KeyW?1:0)-(key
   if(s.handedness==='left'){if(Math.abs(x)>.15)mx+=x;if(Math.abs(y)>.15)mz-=y}
   else{if(Math.abs(y)>.3)u-=y;if(Math.abs(x)>.7&&!snapLock){PL.yaw-=Math.sign(x)*PI/6;snapLock=1}else if(Math.abs(x)<.4)snapLock=0}})}
  const m=Math.hypot(mx,mz);if(m>1){mx/=m;mz/=m}return[mx,mz,cl(u,-1,1)]}
-function tick(dt){const in3=inputs(),mx=in3[0],mz=in3[1],su=in3[2],cr=PL.mode==='creative',deck=boat.position.y+.35,surf=wh(PL.x,PL.z,T),
+function tick(dt){const in3=inputs(),mx=in3[0],mz=in3[1],su=in3[2],cr=PL.mode==='creative',deck=boat.position.y+.35,surf=surfV(PL.x,PL.z),
  eye=vr?Math.max(1,v3.y-PL.y):1.7,headY=PL.y+eye,under=headY<surf-.05;
  if(vr){R.xr.getCamera(cam).matrixWorld.decompose(tp,tq,ts);fw.set(0,0,-1).applyQuaternion(tq)}else fw.set(-Math.sin(PL.yaw)*Math.cos(PL.pitch),Math.sin(PL.pitch),-Math.cos(PL.yaw)*Math.cos(PL.pitch));
  const fl=Math.hypot(fw.x,fw.z)||1,fx=fw.x/fl,fz=fw.z/fl,bl0=bL(PL.x,PL.z),onB=!cr&&PL.y>=deck-(PL.onBoat?1:.15)&&inDeck(bl0,PL.onBoat?.25:0),full=under||cr,lh=islandH(PL.x,PL.z),onL=!onB&&!cr&&lh>surf-1.6&&PL.y<=lh+.8&&PL.y>=lh-1.7;
@@ -360,7 +360,7 @@ function tick(dt){const in3=inputs(),mx=in3[0],mz=in3[1],su=in3[2],cr=PL.mode===
   PL.x+=PL.vx*dt;PL.y+=PL.vy*dt;PL.z+=PL.vz*dt}
  const r=Math.hypot(PL.x,PL.z);if(r>640){PL.x*=640/r;PL.z*=640/r}
  if(!onB&&!cr&&!onL){const q2=bL(PL.x,PL.z);if(PL.noBoard<=0&&Math.abs(q2.x)<1.9&&Math.abs(q2.z)<3.4&&headY>surf-1.3&&PL.y<deck+.6){const w=bW(cl(q2.x,-.5,.5),cl(q2.z,-1.8,1.8));PL.x=w.x;PL.z=w.z;PL.y=deck;PL.vx=PL.vy=PL.vz=0}
-  else{const top=surf-eye+.3;if(PL.y>top){PL.y=Math.max(top,PL.y-5*dt);if(PL.vy>0)PL.vy=0}}}
+  else{const top=surf-eye+.5;if(PL.y>top){PL.y=Math.max(top,PL.y-5*dt);if(PL.vy>0)PL.vy=0}}}
  else if(onB){if(inDeck(bL(PL.x,PL.z),.25))PL.y=deck}
  {if(!onL)islandPush(eye);collide(eye);const f0=sbH(PL.x,PL.z)+.2;if(PL.y<f0){PL.y=f0;if(PL.vy<0)PL.vy=0}}PL.depth=surf-(PL.y+eye);
  const s=saves[PL.cur];PL.t+=dt;if(PL.depth>s.deepest)s.deepest=Math.round(PL.depth);if((PL.sv+=dt)>10){PL.sv=0;saveNow()}
@@ -372,14 +372,14 @@ function tick(dt){const in3=inputs(),mx=in3[0],mz=in3[1],su=in3[2],cr=PL.mode===
  const hx0=vr?v3.x:PL.x,hz0=vr?v3.z:PL.z;
  for(let i=floats.length-1;i>=0;i--){const f=floats[i].m.position;if(Math.hypot(f.x-hx0,f.z-hz0)<1.5&&Math.abs(f.y-headY)<2.2){
   if(addItem(floats[i].food?'food':'water')){toast(floats[i].food?'Picked up: Canned food.':'Picked up: Water bottle.');WG.remove(floats[i].m);floats.splice(i,1)}else fullMsg()}}lootTick(headY,hx0,hz0,dt);leviTick(dt)}
-function world(dt){if(scr==='play'){tick(dt);listen(fw)}else if(scr==='cut')cutTick(dt);else if(scr==='rescue')rescueTick(dt);overlay(dt);wreckTick(dt);fishTick();critTick(dt);beaconTick(dt);decoyTick(dt);islandTick();if(scr==='play')objTick(dt);autoTick(dt);padPoll();
+function world(dt){if(scr==='play'){tick(dt);listen(fw)}else if(scr==='cut')cutTick(dt);else if(scr==='rescue')rescueTick(dt);overlay(dt);wreckTick(dt);fishTick();lootCull(dt);critTick(dt);beaconTick(dt);decoyTick(dt);islandTick();if(scr==='play')objTick(dt);autoTick(dt);padPoll();
  boatTick(dt);
  lant.intensity=1.3+Math.sin(T*9)*.12+Math.sin(T*23)*.08;
  floats.forEach(f=>{f.m.position.y=wh(f.m.position.x,f.m.position.z,T)+.15;f.m.rotation.y+=dt*.4});
  const bq=bL(PL.x,PL.z),op=Math.hypot(bq.x,bq.z-2.2)<2.2&&PL.y>boat.position.y?1.2:0;lids.forEach(l=>l.rotation.x+=(op-l.rotation.x)*Math.min(1,dt*5));
- npcs.forEach((n,i)=>n.rotation.z=Math.sin(T*.8+i)*.04);kelp.forEach(k=>k.rotation.z=Math.sin(T*.7+k.userData.p)*.1);
- const surf=wh(v3.x,v3.z,T),und=v3.y<surf-.03;uw.visible=und;ocean.visible=!und;S.fog=und?fogU:null;headL.visible=und;
- if(und){const d=surf-v3.y;headL.intensity=gearOf().light?1.8:1.1;headL.distance=gearOf().light?34:16;uw.position.copy(v3);fogU.color.copy(c0).lerp(c1,Math.min(1,d/40));uw.material.color.copy(fogU.color);fogU.density=.04+d*.0012;headL.position.copy(v3)}
+ npcs.forEach((n,i)=>n.rotation.z=Math.sin(T*.8+i)*.04);kelp.forEach(k=>{if(Math.abs(k.position.x-PL.x)<110&&Math.abs(k.position.z-PL.z)<110)k.rotation.z=Math.sin(T*.7+k.userData.p)*.1});
+ const surf=surfV(v3.x,v3.z),und=v3.y<surf+.08;uw.visible=und;ocean.visible=!und;S.fog=und?fogU:null;headL.visible=und;if(und&&v3.y<surf-.5)FARUW=1;else if(!und)FARUW=0;{const wf=FARUW?150:1500;if(cam.far!==wf){cam.far=wf;cam.updateProjectionMatrix()}}uw.scale.setScalar(FARUW?.4:1);
+ if(und){const d=Math.max(0,surf-v3.y);headL.intensity=gearOf().light?1.8:1.1;headL.distance=gearOf().light?34:16;uw.position.copy(v3);fogU.color.copy(c0).lerp(c1,Math.min(1,d/40));uw.material.color.copy(fogU.color);fogU.density=.065+d*.0016;headL.position.copy(v3)}
  if(PL.tt>0)PL.tt-=dt;if((PL.hud-=dt)<=0){PL.hud=.2;hudUp()}}
 
 /* ---------- HUD (browser bars and VR wrist display) ---------- */
@@ -620,11 +620,11 @@ function addLoot(type,p,note,fixed){if(!fixed)p.y=Math.max(p.y,sbH(p.x,p.z)+.35)
 [WP(0,1.3,-2.2),WP(-.9,1.3,.6),WP(1,1.2,5),GP(-9.5,-21),GP(-1,-30),GP(-12,-27)].forEach(p=>addLoot('bones',p));
 [WP(.8,1.3,-1.8),WP(-1,1.3,-.4),WP(-1,1.2,6.3),GP(-7.5,-18),GP(-2.5,-26)].forEach(p=>addLoot('food',p));
 [WP(-.7,1.3,-3),WP(.9,1.3,.9),WP(1.2,1.2,7),GP(-10,-25),GP(-4,-31.5)].forEach(p=>addLoot('water',p));
-const bubM=new THREE.MeshBasicMaterial({color:0xbff6ff,transparent:true,opacity:.35,fog:false}),shM=new THREE.MeshBasicMaterial({color:0x9ff0ff,transparent:true,opacity:.12,fog:false,depthWrite:false});
+const bubM=new THREE.MeshBasicMaterial({color:0xbff6ff,transparent:true,opacity:.35}),shM=new THREE.MeshBasicMaterial({color:0x9ff0ff,transparent:true,opacity:.12,depthWrite:false});
 [WP(0,1.9,-1),WP(0,1.7,6.2),WP(0,1.8,-6.5)].forEach((p,k)=>{const g=new THREE.Group();g.position.copy(p);g.add(new THREE.Mesh(new THREE.SphereGeometry(1.7,14,10),shM));
  for(let i=0;i<9;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.07+.05*((i*7)%3)/2,6,5),bubM);b.position.set(Math.sin(i*2.3)*1,Math.cos(i*1.7)*.9,Math.sin(i*3.1)*1);b.userData.y0=b.position.y;g.add(b)}
  WG.add(g);pocketG.push(g);pockets.push({x:p.x,y:p.y,z:p.z,r:1.9})});
-function wreckTick(){wl.intensity=.9+Math.sin(T*13)*.2*Math.random();pocketG.forEach((g,k)=>g.children.forEach((c,i)=>{if(i)c.position.y=c.userData.y0+Math.sin(T*1.5+i+k)*.15}))}
+function wreckTick(){wl.intensity=.9+Math.sin(T*13)*.2*Math.random();pocketG.forEach((g,k)=>{if(Math.abs(g.position.x-PL.x)>90||Math.abs(g.position.z-PL.z)>90)return;g.children.forEach((c,i)=>{if(i)c.position.y=c.userData.y0+Math.sin(T*1.5+i+k)*.15})})}
 function bonesFound(s){return(s.looted||[]).filter(i=>loot[i]&&loot[i].type==='bones').length}
 function lootTick(headY,hx,hz,dt){const s=saves[PL.cur];
  for(let i=0;i<loot.length;i++){const l=loot[i];if(l.taken)continue;const p=l.m.position;if(Math.hypot(p.x-hx,p.z-hz)>1.7||p.y<headY-2.7||p.y>headY+.7)continue;
@@ -641,9 +641,9 @@ const lj1=new THREE.Group(),lj2=new THREE.Group(),toothM=mt(0xd8d2c4,.4);lj1.pos
 box3(5.4,.8,7,lvm,0,0,-3.4,lj1);box3(5.2,.8,6.6,lvm,0,0,-3.2,lj2);
 for(let i=0;i<7;i++){const x=-2.4+i*.8,t1=new THREE.Mesh(new THREE.ConeGeometry(.28,1.3,4),toothM),t2=new THREE.Mesh(new THREE.ConeGeometry(.28,1.3,4),toothM);t1.position.set(x,-.9,-6.4+(i%2)*.4);t1.rotation.x=PI;lj1.add(t1);t2.position.set(x,.9,-6.2+(i%2)*.4);lj2.add(t2)}
 const stalk=box3(.14,.14,7,lvm,0,3.1,-9,levi);stalk.rotation.x=.35;
-const lure=new THREE.Mesh(new THREE.SphereGeometry(.55,10,8),new THREE.MeshBasicMaterial({color:0xaffff4,fog:false}));lure.position.set(0,4.6,-12.2);levi.add(lure);
+const lure=new THREE.Mesh(new THREE.SphereGeometry(.55,10,8),new THREE.MeshBasicMaterial({color:0xaffff4}));lure.position.set(0,4.6,-12.2);levi.add(lure);
 const lureL=new THREE.PointLight(0x7ffff0,2.5,60,2);lureL.position.copy(lure.position);levi.add(lureL);
-[-1,1].forEach(sd=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.4,8,6),new THREE.MeshBasicMaterial({color:0xff5533,fog:false}));e.position.set(sd*3.1,.9,-10);levi.add(e)});
+[-1,1].forEach(sd=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.4,8,6),new THREE.MeshBasicMaterial({color:0xff5533}));e.position.set(sd*3.1,.9,-10);levi.add(e)});
 const tailL=new THREE.Mesh(new THREE.ConeGeometry(2.5,9,5),lvm);tailL.rotation.x=PI/2;tailL.position.z=18;tailL.scale.set(.5,1,1.4);levi.add(tailL);
 const LV={on:false,mode:0,warn:0,calm:0,cold:false,wp:new THREE.Vector3(),dir:new THREE.Vector3(1,0,0)},lmw=new THREE.Vector3(),lmo=new THREE.Vector3(),lvt=new THREE.Vector3();
 function deepPoint(out){for(let k=0;k<60;k++){const a=Math.random()*6.28,r=125+Math.random()*455,x=Math.cos(a)*r,z=Math.sin(a)*r,g=sbH(x,z);if(g>-64)continue;out.set(x,Math.max(-(38+Math.random()*(-g-52)),g+9),z);return out}return out.set(0,-60,-150)}
@@ -689,7 +689,7 @@ function palm(x,z){const g=new THREE.Group(),h=3.5+sr()*2,t=new THREE.Mesh(new T
 [[0,14],[1,9],[2,7]].forEach(a=>{const i=ISL[a[0]];let n=0,tries=0;while(n<a[1]&&tries++<400){const an=sr()*6.28,rr=i.R*(.15+sr()*.6),x=i.x+Math.cos(an)*rr,z=i.z+Math.sin(an)*rr,h=islandH(x,z);if(h>1.4&&h<i.H*.6){palm(x,z);n++}}});
 ISL.forEach(i=>{for(let k=0;k<12;k++){const a=sr()*6.28,r=sr()*.75,x=i.x+Math.cos(a)*r*i.R,z=i.z+Math.sin(a)*r*i.R,h=2+sr()*4,cn=new THREE.Mesh(new THREE.ConeGeometry(.6+sr()*.8,h,5),rockB);cn.rotation.x=PI;cn.position.set(x,keelH(r,i)-h/2+.6,z);WG.add(cn)}});
 const IP=(i,dx,dz,dy)=>new THREE.Vector3(i.x+dx,islandH(i.x+dx,i.z+dz)+(dy===undefined?.4:dy),i.z+dz);
-const glowSph=(x,y,z,c,r)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r||.3,8,6),new THREE.MeshBasicMaterial({color:c,fog:false}));m.position.set(x,y,z);WG.add(m);return m};
+const glowSph=(x,y,z,c,r)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r||.3,8,6),new THREE.MeshBasicMaterial({color:c}));m.position.set(x,y,z);WG.add(m);return m};
 /* island 1: the fisherman's hut */
 const I1=ISL[0],hx1=I1.x+6,hz1=I1.z+4,hy1=islandH(hx1,hz1),hut=new THREE.Group();hut.position.set(hx1,hy1,hz1);WG.add(hut);
 box3(5,.15,4,plank,0,.07,0,hut);box3(5,2.4,.15,plank,0,1.3,-2,hut);box3(.15,2.4,4,plank,-2.5,1.3,0,hut);box3(.15,2.4,4,plank,2.5,1.3,0,hut);box3(1.6,2.4,.15,plank,-1.7,1.3,2,hut);box3(1.6,2.4,.15,plank,1.7,1.3,2,hut);
@@ -859,7 +859,7 @@ coralI.forEach((m,i)=>{m.count=coralN[i];m.instanceMatrix.needsUpdate=true;if(m.
 const FN=90,fishI=new THREE.InstancedMesh(new THREE.ConeGeometry(.1,.5,4).rotateX(PI/2),new THREE.MeshStandardMaterial({color:0xffffff,emissive:0x1a2228,flatShading:true}),FN),SCH=[],dm=new THREE.Object3D();fishI.frustumCulled=false;WG.add(fishI);
 for(let q=0;q<6;q++){let x,z,t=0;do{const a=sr()*6.28,r=28+sr()*45;x=Math.cos(a)*r;z=Math.sin(a)*r}while((sbH(x,z)<-37||islandH(x,z)>-4)&&t++<50);SCH.push({x,z,y:-(8+sr()*14),R:4+sr()*5,w:.25+sr()*.25,p:sr()*6})}
 {const fc=new THREE.Color();for(let i=0;i<FN;i++){fc.setHex([0xc9d6dc,0x7fb5d6,0xf0a04a][i%3]);fishI.setColorAt(i,fc)}}
-function fishTick(){if(!WG.visible)return;for(let i=0;i<FN;i++){const sc=SCH[Math.floor(i/15)],a=T*sc.w+(i%15)*.42+sc.p,rr=sc.R+Math.sin(i*1.7)*1.2;dm.position.set(sc.x+Math.cos(a)*rr,sc.y+Math.sin(a*2+i)*.8,sc.z+Math.sin(a)*rr);dm.rotation.set(0,-a,0);dm.updateMatrix();fishI.setMatrixAt(i,dm.matrix)}fishI.instanceMatrix.needsUpdate=true}
+function fishTick(){if(!WG.visible)return;for(let i=0;i<FN;i++){const sc=SCH[Math.floor(i/15)];if(Math.hypot(sc.x-PL.x,sc.z-PL.z)>SIM+40)continue;const a=T*sc.w+(i%15)*.42+sc.p,rr=sc.R+Math.sin(i*1.7)*1.2;dm.position.set(sc.x+Math.cos(a)*rr,sc.y+Math.sin(a*2+i)*.8,sc.z+Math.sin(a)*rr);dm.rotation.set(0,-a,0);dm.updateMatrix();fishI.setMatrixAt(i,dm.matrix)}fishI.instanceMatrix.needsUpdate=true}
 function addPocket(p,k){const g=new THREE.Group();g.position.copy(p);g.add(new THREE.Mesh(new THREE.SphereGeometry(1.7,14,10),shM));
  for(let i=0;i<9;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.07+.05*((i*7)%3)/2,6,5),bubM);b.position.set(Math.sin(i*2.3)*1,Math.cos(i*1.7)*.9,Math.sin(i*3.1)*1);b.userData.y0=b.position.y;g.add(b)}WG.add(g);pocketG.push(g);pockets.push({x:p.x,y:p.y,z:p.z,r:1.9})}
 /* the freighter */
@@ -895,7 +895,7 @@ const marker=r=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,8,6),mkM);m.r
 function mkShark(x,y,z){const g=new THREE.Group(),b=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),sharkM);b.scale.set(.5,.42,1.7);g.add(b);
  const f=new THREE.Mesh(new THREE.ConeGeometry(.3,.8,4),sharkM);f.position.set(0,.55,0);f.rotation.x=-.2;g.add(f);
  const t=new THREE.Mesh(new THREE.ConeGeometry(.35,1,4),sharkM);t.rotation.x=-PI/2;t.position.z=1.9;t.scale.set(.4,1,1.5);g.add(t);
- [-1,1].forEach(sd=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.07,6,5),new THREE.MeshBasicMaterial({color:0xff4030,fog:false}));e.position.set(sd*.3,.12,-1.45);g.add(e)});
+ [-1,1].forEach(sd=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.07,6,5),new THREE.MeshBasicMaterial({color:0xff4030}));e.position.set(sd*.3,.12,-1.45);g.add(e)});
  g.position.set(x,y,z);WG.add(g);PRED.push({g,home:new THREE.Vector3(x,y,z),wp:new THREE.Vector3(x,y,z),dir:new THREE.Vector3(1,0,0),mode:0,cool:0,t:0,rest:0,st:0,ret:0,mk:marker(.7)})}
 function mkJelly(x,y,z){const g=new THREE.Group(),m=new THREE.MeshStandardMaterial({color:0xff7ac8,emissive:0xc040a0,emissiveIntensity:1.4,transparent:true,opacity:.78,flatShading:true,depthWrite:false,side:THREE.DoubleSide});
  const bell=new THREE.Mesh(new THREE.SphereGeometry(.7,10,6,0,PI*2,0,PI/2),m);g.add(bell);const tn=new THREE.Mesh(new THREE.ConeGeometry(.45,2.2,6,1,true),m);tn.position.y=-1.1;tn.rotation.x=PI;g.add(tn);
@@ -908,12 +908,12 @@ const LVM=marker(2.2);let pingT=0,pingCd=0;const pingS=new THREE.Mesh(new THREE.
 function doPing(){if(scr!=='play'||!(gearOf().sonar>=1))return;if(pingCd>0){toast('The sonar is recharging.');return}pingCd=14;pingT=8;snd('ping',null);
  const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z,hy=vr?v3.y:PL.y+1.7;pingS.position.set(hx,hy,hz);pingS.scale.setScalar(1);pingS.visible=true;
  if(LV.on&&LV.mode===0&&Math.hypot(levi.position.x-hx,levi.position.y-hy,levi.position.z-hz)<220){LV.mode=1;LV.calm=0;toast('The ping echoes back. Something answered.')}}
-function critTick(dt){const cr=PL.mode==='creative';PRED.forEach(p=>p.g.visible=!cr);JELLY.forEach(j=>j.g.visible=!cr);
+function critTick(dt){const cr=PL.mode==='creative';
  const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z,hy=vr?v3.y:PL.y+1.7;
- JELLY.forEach(j=>{j.g.position.set(j.base.x+Math.sin(T*.2+j.ph)*3,j.base.y+Math.sin(T*.5+j.ph)*1.2,j.base.z+Math.cos(T*.17+j.ph)*3);j.bell.scale.y=.8+.25*Math.sin(T*2+j.ph)});
- if(cr||scr!=='play')return;
+ JELLY.forEach(j=>{const fz=cr||Math.hypot(j.base.x-hx,j.base.z-hz)>SIM;j.g.visible=!fz;if(fz)return;j.g.position.set(j.base.x+Math.sin(T*.2+j.ph)*3,j.base.y+Math.sin(T*.5+j.ph)*1.2,j.base.z+Math.cos(T*.17+j.ph)*3);j.bell.scale.y=.8+.25*Math.sin(T*2+j.ph)});
+ if(cr){PRED.forEach(p=>p.g.visible=false);return}if(scr!=='play')return;
  const swim=PL.depth>1.5;PL.noise=(PL.noise||0)*.92+cl(Math.hypot(PL.vx,PL.vy,PL.vz)/3,0,1)*.08;
- PRED.forEach(p=>{p.cool-=dt;p.rest-=dt;const pos=p.g.position,dd=Math.hypot(pos.x-hx,pos.y-hy,pos.z-hz),sense=13*(.7+.8*PL.noise);
+ PRED.forEach(p=>{const q0=p.g.position;if(Math.hypot(q0.x-hx,q0.z-hz)>SIM){p.g.visible=false;return}p.g.visible=true;p.cool-=dt;p.rest-=dt;const pos=p.g.position,dd=Math.hypot(pos.x-hx,pos.y-hy,pos.z-hz),sense=13*(.7+.8*PL.noise);
   if(p.mode===0){if(swim&&dd<sense&&p.rest<=0){p.mode=1;p.st=9}}
   else if(p.mode===1){p.st-=dt;if(!swim||dd>26||p.st<=0){p.mode=0;p.rest=14}}
   else{p.ret-=dt;if(p.ret<=0){p.mode=0;p.rest=6}}
@@ -921,7 +921,7 @@ function critTick(dt){const cr=PL.mode==='creative';PRED.forEach(p=>p.g.visible=
   lmw.copy(tgt).sub(pos);lmw.normalize();p.dir.lerp(lmw,Math.min(1,dt*(p.mode===1?2:1))).normalize();pos.addScaledVector(p.dir,(p.mode===1?2.8:p.mode===2?2.6:2.2)*dt*(PL.mode==='hardcore'?1.15:1));
   pos.y=Math.max(Math.min(pos.y,-3),sbH(pos.x,pos.z)+2);p.g.lookAt(pos.clone().sub(p.dir));
   if(p.mode===1&&dd<2.2&&p.cool<=0){p.cool=3;p.mode=2;p.ret=4.5;hurt(6*diffMul(),'A reef shark tore you apart.');toast('A shark bites you! Swim away while it circles back.')}});
- JELLY.forEach(j=>{j.cool-=dt;const q=j.g.position;if(j.cool<=0&&Math.hypot(q.x-hx,q.z-hz)<1.3&&(Math.abs(q.y-hy)<1.4||Math.abs(q.y-(PL.y+.9))<1.2)){j.cool=3;hurt(4*diffMul(),'Jellyfish stings were too much.');PL.poison=4;PL.slow=3;toast('A jellyfish stings you!')}});
+ JELLY.forEach(j=>{if(!j.g.visible)return;j.cool-=dt;const q=j.g.position;if(j.cool<=0&&Math.hypot(q.x-hx,q.z-hz)<1.3&&(Math.abs(q.y-hy)<1.4||Math.abs(q.y-(PL.y+.9))<1.2)){j.cool=3;hurt(4*diffMul(),'Jellyfish stings were too much.');PL.poison=4;PL.slow=3;toast('A jellyfish stings you!')}});
  if(PL.poison>0){PL.poison-=dt;PL.hp-=2.5*diffMul()*dt;PL.hurtAt=performance.now();PL.hurtBy='The jellyfish venom finished you.'}if(PL.slow>0)PL.slow-=dt;
  pingCd-=dt;if(pingT>0){pingT-=dt;const mkU=(m,p,rng)=>{const d=Math.hypot(p.x-hx,p.y-hy,p.z-hz);m.visible=d<rng;m.position.copy(p)};PRED.forEach(p=>mkU(p.mk,p.g.position,80));JELLY.forEach(j=>mkU(j.mk,j.g.position,60));mkU(LVM,levi.position,220);
   pingS.scale.addScalar(dt*90);pingS.visible=pingS.scale.x<130;pingS.material.opacity=Math.max(0,.45*(1-pingS.scale.x/130))}else{PRED.forEach(p=>p.mk.visible=false);JELLY.forEach(j=>j.mk.visible=false);LVM.visible=false;pingS.visible=false}}
@@ -946,7 +946,7 @@ RECIPES.push(
  {id:'beacon',n:'Rescue beacon',s:'Beacon',ic:'beacon',d:'A transmitter strong enough to reach a rescue ship. It will also reach the leviathan. Mounted at the bow of the lifeboat.',need:{antenna:1,core:1,battery:2,fuel:1,cable:3,scrap:8},g:['beacon',1]},
  {id:'decoy',n:'Decoy buoys x2',s:'Decoys',ic:'decoy',d:'Two noisy floating transmitters. Press G (left trigger in VR, Decoy on a phone) to launch one far from the boat.',need:{scrap:2,cable:1},item:['decoy',2]});
 function canHold(arr,id,n){const m=IT[id].max;let room=0;arr.forEach(sl=>{if(!sl)room+=m;else if(sl.id===id)room+=m-sl.n});return room>=n}
-bm('beacon',g=>{box3(.1,3.2,.1,metal,0,1.95,-2.75,g);[.7,1.4,2.1].forEach(y=>box3(1.1-y*.25,.05,.05,metal,0,1.3+y,-2.75,g));g.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),new THREE.MeshBasicMaterial({color:0xff4030,fog:false})),{name:'lamp'}));g.getObjectByName('lamp').position.set(0,3.6,-2.75)});
+bm('beacon',g=>{box3(.1,3.2,.1,metal,0,1.95,-2.75,g);[.7,1.4,2.1].forEach(y=>box3(1.1-y*.25,.05,.05,metal,0,1.3+y,-2.75,g));g.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),new THREE.MeshBasicMaterial({color:0xff4030})),{name:'lamp'}));g.getObjectByName('lamp').position.set(0,3.6,-2.75)});
 const origRefresh=refreshBoat;refreshBoat=function(){origRefresh();bup.beacon.visible=gearOf().beacon>=1;const l=bup.beacon.getObjectByName('lamp');if(l)l.visible=BEACON.on?Math.sin(T*8)>-.3:true};
 function toggleBeacon(){BEACON.on=!BEACON.on;closeBag();toast(BEACON.on?'The beacon is broadcasting. Hold out for four minutes. The leviathan will come for the boat.':'The beacon is switched off. Your progress is kept.');if(BEACON.on)LV.cool=0}
 function beaconTick(dt){if(scr!=='play'||!BEACON.on)return;BEACON.p+=dt;BEACON.pt-=dt;if(BEACON.pt<=0){BEACON.pt=4;snd('ping',{x:BT.x,y:0,z:BT.z})}if(BEACON.p>=SIGNAL_TIME)startRescue()}
@@ -954,7 +954,7 @@ function beaconTick(dt){if(scr!=='play'||!BEACON.on)return;BEACON.p+=dt;BEACON.p
 const decoys=[];
 function deployDecoy(){if(scr!=='play')return;const v=invOf(),i=v.findIndex(x=>x&&x.id==='decoy');if(i<0){toast('You have no decoy buoys.');return}const sl=v[i];if(--sl.n<=0)v[i]=null;store();
  const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z,fl=Math.hypot(fw.x,fw.z)||1,x=hx+fw.x/fl*45,z=hz+fw.z/fl*45,g=new THREE.Group();
- box3(.3,.8,.3,mt(0xe04030,.6),0,0,0,g);box3(.34,.2,.34,mt(0xf0f0f0,.6),0,.3,0,g);{const lp=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),new THREE.MeshBasicMaterial({color:0xffe060,fog:false}));lp.position.set(0,.8,0);g.add(lp)}
+ box3(.3,.8,.3,mt(0xe04030,.6),0,0,0,g);box3(.34,.2,.34,mt(0xf0f0f0,.6),0,.3,0,g);{const lp=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),new THREE.MeshBasicMaterial({color:0xffe060}));lp.position.set(0,.8,0);g.add(lp)}
  g.position.set(x,wh(x,z,T)+.2,z);WG.add(g);decoys.push({x,z,t:35,g,pt:0});toast('Decoy launched. It draws the leviathan for about half a minute.')}
 function decoyTick(dt){for(let i=decoys.length-1;i>=0;i--){const d=decoys[i];d.t-=dt;d.g.position.y=wh(d.x,d.z,T)+.2;d.g.children[2].visible=Math.sin(T*6)>0;d.pt-=dt;if(d.pt<=0){d.pt=3;snd('ping',{x:d.x,y:0,z:d.z})}if(d.t<=0){WG.remove(d.g);decoys.splice(i,1)}}}
 /* the rescue */
@@ -986,6 +986,11 @@ function handsTick(){const ss=R.xr.getSession();if(!ss)return;
   hd.userData.fingers.forEach((f,k)=>{f.rotation.x=-(curl+(k===0?tr*.5:0));f.userData.tip.rotation.x=-curl*.9});hd.userData.thumb.rotation.z=(h==='left'?1:-1)*(.1+sq*.5);
   hd.userData.panel.visible=scr==='play'&&h==='left'})}
 
+/* ---------- Distance handling, surface height as the sea mesh draws it, version ---------- */
+const VERSION='Version 0.9.0, finale update',SIM=170;let FARUW=0,lcT=0;
+const OC=1200/260;
+function surfV(x,z){const x0=Math.floor(x/OC)*OC,z0=Math.floor(z/OC)*OC,fx=(x-x0)/OC,fz=(z-z0)/OC,a=wh(x0,z0,T),b=wh(x0+OC,z0,T),d=wh(x0,z0+OC,T),e=wh(x0+OC,z0+OC,T);return fx+fz<=1?a+(b-a)*fx+(d-a)*fz:e+(b-e)*(1-fz)+(d-e)*(1-fx)}
+function lootCull(dt){lcT-=dt;if(lcT>0)return;lcT=.4;const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z;loot.forEach(l=>{if(l.taken)return;const p=l.m.position;l.m.visible=Math.abs(p.x-hx)<140&&Math.abs(p.z-hz)<140})}
 /* ---------- Main loop ---------- */
 let T=0,fr=0,last=0;const v3=new THREE.Vector3();
 R.setAnimationLoop(now=>{try{const dt=Math.min((now-(last||now))/1000,.1);last=now;if(!still)T+=dt;U.t.value=T;const gm=scr==='play'||scr==='pause'||scr==='inv'||scr==='chest'||scr==='note'||scr==='craft'||scr==='journal'||scr==='end'||scr==='rescue'||scr==='cut';if(gm){rig.position.set(PL.x+(Math.random()-.5)*(PL.jolt||0)*.12,PL.y+(vr?cal.e:0)+(Math.random()-.5)*(PL.jolt||0)*.08,PL.z+(Math.random()-.5)*(PL.jolt||0)*.12);rig.rotation.y=PL.yaw}else{rig.position.set(0,Math.sin(T*.9)*.14+(vr?cal.e:0),0);rig.rotation.y=0}
@@ -993,6 +998,6 @@ R.setAnimationLoop(now=>{try{const dt=Math.min((now-(last||now))/1000,.1);last=n
   let nh=null;ctl.forEach(c=>{const p=pick(c);c.userData.l.visible=scr!=='play'&&scr!=='cut'&&scr!=='rescue';c.userData.l.scale.z=p?p.h.distance:3;if(p&&p.hit)nh=p.hit.id});if(nh!==hover){hover=nh;dirty=true}
   if(dirty&&scr!=='play'&&scr!=='cut'&&scr!=='rescue')drawVR()}
  else{cam.position.set(0,1.7,0);if(gm){cam.rotation.set(PL.pitch,0,0);v3.set(PL.x,PL.y+1.7,PL.z)}else{cam.rotation.set(-.08+Math.sin(T*.7)*.006,0,Math.sin(T*.6)*.012);v3.set(0,1.7+rig.position.y,0)}}
- if(gm)world(dt);U.cam.value.copy(v3);ocean.position.set(Math.round(v3.x/4.6154)*4.6154,0,Math.round(v3.z/4.6154)*4.6154);sky.position.set(v3.x,0,v3.z);updateLogo()}catch(e){fail(e)}R.render(S,cam)});
+ if(gm)world(dt);U.cam.value.copy(v3);ocean.position.set(Math.round(v3.x/OC)*OC,0,Math.round(v3.z/OC)*OC);sky.position.set(v3.x,0,v3.z);updateLogo()}catch(e){fail(e)}R.render(S,cam)});
 ui();
 </script></body></html>
