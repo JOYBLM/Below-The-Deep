@@ -327,7 +327,7 @@ function toast(t){PL.toast=t;PL.tt=4}
 function respawn(){leviReset();PL.vx=PL.vy=PL.vz=0;PL.noBoard=0;boat.position.set(BT.x,wh(BT.x,BT.z,T)*.8-.05,BT.z);boat.rotation.y=BT.yaw;{const w=bW(.6,.9);PL.x=w.x;PL.z=w.z}PL.helm=0;BT.v=0;PL.y=boat.position.y+.35;PL.o2=100;PL.fd=Math.max(PL.fd,60);PL.wt=Math.max(PL.wt,60);PL.hp=100}
 function initPlay(i){const s=saves[i];Object.assign(PL,{cur:i,mode:s.mode,yaw:0,pitch:0,o2:100,fd:100,wt:100,hp:100,t:0,sv:0,base:s.time,vx:0,vy:0,vz:0,noBoard:0,hint:0,chest:-1,sel:null,helm:0});{const b0=s.boat||{};BT.x=b0.x||0;BT.z=b0.z||0;BT.yaw=b0.yaw||0;BT.fuelT=b0.fuelT||0;BT.v=0;const bb=s.beacon||{};BEACON.on=!!bb.on;BEACON.p=bb.p||0}respawn();npcs[3].visible=false;loot.forEach((l,i)=>{l.taken=!!l.removed||(s.looted||[]).includes(i);l.m.visible=!l.taken});
  toast(vr?'Left stick swims, right stick turns. A or X opens your backpack, the left menu button pauses.':coarse?'Drag the left side to move and the right side to look. Tap Bag for your backpack.':'Click to look around. WASD to swim, Space up, Shift down. I opens your backpack.')}
-function saveNow(){const s=saves[PL.cur];if(s){s.time=PL.base+Math.floor(PL.t/60);s.boat={x:+BT.x.toFixed(1),z:+BT.z.toFixed(1),yaw:+BT.yaw.toFixed(3),fuelT:Math.round(BT.fuelT)};s.beacon={on:BEACON.on,p:Math.round(BEACON.p)};s.ver='0.9.1';store()}}
+function saveNow(){const s=saves[PL.cur];if(s){s.time=PL.base+Math.floor(PL.t/60);s.boat={x:+BT.x.toFixed(1),z:+BT.z.toFixed(1),yaw:+BT.yaw.toFixed(3),fuelT:Math.round(BT.fuelT)};s.beacon={on:BEACON.on,p:Math.round(BEACON.p)};s.ver='0.9.2';store()}}
 function die(msg){const s=saves[PL.cur];s.deaths++;
  if(PL.mode==='hardcore'){saves[PL.cur]=null;store();info={t:'Your run is over',p:msg+' Hardcore saves can’t be restored.'};scr='game';mod=null;document.exitPointerLock&&document.exitPointerLock();ui()}
  else{store();respawn();toast(msg+' You wake up on the lifeboat.')}}
@@ -375,7 +375,7 @@ function tick(dt){const in3=inputs(),mx=in3[0],mz=in3[1],su=in3[2],cr=PL.mode===
  const hx0=vr?v3.x:PL.x,hz0=vr?v3.z:PL.z;
  for(let i=floats.length-1;i>=0;i--){const f=floats[i].m.position;if(Math.hypot(f.x-hx0,f.z-hz0)<1.5&&Math.abs(f.y-headY)<2.2){
   if(addItem(floats[i].food?'food':'water')){toast(floats[i].food?'Picked up: Canned food.':'Picked up: Water bottle.');WG.remove(floats[i].m);floats.splice(i,1)}else fullMsg()}}lootTick(headY,hx0,hz0,dt);leviTick(dt)}
-function world(dt){if(scr==='play'){tick(dt);listen(fw)}else if(scr==='cut')cutTick(dt);else if(scr==='rescue')rescueTick(dt);overlay(dt);wreckTick(dt);fishTick();lootCull(dt);critTick(dt);beaconTick(dt);decoyTick(dt);islandTick();if(scr==='play')objTick(dt);autoTick(dt);padPoll();
+function world(dt){if(scr==='play'){tick(dt);listen(fw)}else if(scr==='cut')cutTick(dt);else if(scr==='rescue')rescueTick(dt);overlay(dt);mixTick(dt);wreckTick(dt);fishTick();lootCull(dt);critTick(dt);beaconTick(dt);decoyTick(dt);islandTick();if(scr==='play')objTick(dt);autoTick(dt);padPoll();
  boatTick(dt);
  lant.intensity=1.3+Math.sin(T*9)*.12+Math.sin(T*23)*.08;
  floats.forEach(f=>{f.m.position.y=wh(f.m.position.x,f.m.position.z,T)+.15;f.m.rotation.y+=dt*.4});
@@ -684,7 +684,7 @@ function leviTick(dt){if(PL.mode==='creative'){if(LV.on)leviReset();return}if(!L
  LV.dir.lerp(lmw,Math.min(1,dt*(LV.mode?.9:.35))).normalize();levi.position.addScaledVector(LV.dir,(LV.mode===1?7+Math.min(4,40/Math.max(dist,10)):4.5)*(PL.mode==='hardcore'?1.15:1)*dt);
  const g=sbH(levi.position.x,levi.position.z);levi.position.y=Math.max(Math.min(levi.position.y,-22),g+8);
  levi.lookAt(levi.position.clone().sub(LV.dir));levi.updateMatrixWorld(true);lmo.set(0,0,-14);levi.localToWorld(lmo);
- const md=Math.hypot(lmo.x-hx,lmo.y-hy,lmo.z-hz),op=LV.mode===1&&md<30?Math.min(.9,(30-md)/20):0;lj1.rotation.x=-op*.5;lj2.rotation.x=op*.5;lureL.intensity=2.2+Math.sin(T*3)*.4;
+ const md=Math.hypot(lmo.x-hx,lmo.y-hy,lmo.z-hz),op=LV.mode===1&&md<30?Math.min(.9,(30-md)/20):0;lj1.rotation.x=-op*.5;lj2.rotation.x=op*.5;lureL.intensity=2.2+Math.sin(T*3)*.4;{const mm=levi.userData.mdl;if(mm){if(LV.mode===1&&md<14)playOnce(mm,'attack');setRole(mm,LV.mode===1?(mm.act.fast?'fast':'swim'):'swim',LV.mode===1&&!mm.act.fast?1.5:1)}}
  if(LV.mode===1&&md<6){leviReset();die('You were swallowed whole.')}}
 
 /* ---------- The three islands ---------- */
@@ -704,9 +704,9 @@ ISL.forEach(i=>{const NR=22,NA=56,pos=[],col=[],idx=[],c=new THREE.Color();
  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,side:THREE.DoubleSide}));m.position.set(i.x,0,i.z);WG.add(m)});
 let sd=7;const sr=()=>(sd=(sd*16807)%2147483647)/2147483647;
 const trunkM=mt(0x7a5a38,1),leafM=mt(0x2f7a3a,.9),rockB=mt(0x6d6b66,1),plank=mt(0x6b4a2e,.95),roofM=mt(0x4a3a2a,.95),wallG=mt(0xaab2b8,.7);
-function palm(x,z){const g=new THREE.Group(),h=3.5+sr()*2,t=new THREE.Mesh(new THREE.CylinderGeometry(.12,.2,h,6),trunkM);t.position.y=h/2;t.rotation.z=(sr()-.5)*.25;g.add(t);
+const PALMS=[];function palm(x,z){const g=new THREE.Group(),h=3.5+sr()*2,t=new THREE.Mesh(new THREE.CylinderGeometry(.12,.2,h,6),trunkM);t.position.y=h/2;t.rotation.z=(sr()-.5)*.25;g.add(t);
  for(let k=0;k<5;k++){const a=k*1.26,l=new THREE.Mesh(new THREE.ConeGeometry(.35,2.4,4),leafM);l.position.set(Math.cos(a)*.9,h+.1,Math.sin(a)*.9);l.rotation.set(Math.sin(a)*1.2,0,-Math.cos(a)*1.2);g.add(l)}
- g.position.set(x,islandH(x,z),z);WG.add(g)}
+ g.position.set(x,islandH(x,z),z);WG.add(g);PALMS.push(g)}
 [[0,14],[1,9],[2,7]].forEach(a=>{const i=ISL[a[0]];let n=0,tries=0;while(n<a[1]&&tries++<400){const an=sr()*6.28,rr=i.R*(.15+sr()*.6),x=i.x+Math.cos(an)*rr,z=i.z+Math.sin(an)*rr,h=islandH(x,z);if(h>1.4&&h<i.H*.6){palm(x,z);n++}}});
 ISL.forEach(i=>{for(let k=0;k<12;k++){const a=sr()*6.28,r=sr()*.75,x=i.x+Math.cos(a)*r*i.R,z=i.z+Math.sin(a)*r*i.R,h=2+sr()*4,cn=new THREE.Mesh(new THREE.ConeGeometry(.6+sr()*.8,h,5),rockB);cn.rotation.x=PI;cn.position.set(x,keelH(r,i)-h/2+.6,z);WG.add(cn)}});
 const IP=(i,dx,dz,dy)=>new THREE.Vector3(i.x+dx,islandH(i.x+dx,i.z+dz)+(dy===undefined?.4:dy),i.z+dz);
@@ -931,7 +931,7 @@ function doPing(){if(scr!=='play'||!(gearOf().sonar>=1))return;if(pingCd>0){toas
  if(LV.on&&LV.mode===0&&Math.hypot(levi.position.x-hx,levi.position.y-hy,levi.position.z-hz)<220){LV.mode=1;LV.calm=0;toast('The ping echoes back. Something answered.')}}
 function critTick(dt){const cr=PL.mode==='creative';
  const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z,hy=vr?v3.y:PL.y+1.7;
- JELLY.forEach(j=>{const fz=cr||Math.hypot(j.base.x-hx,j.base.z-hz)>SIM;j.g.visible=!fz;if(fz)return;j.g.position.set(j.base.x+Math.sin(T*.2+j.ph)*3,j.base.y+Math.sin(T*.5+j.ph)*1.2,j.base.z+Math.cos(T*.17+j.ph)*3);j.bell.scale.y=.8+.25*Math.sin(T*2+j.ph)});
+ JELLY.forEach(j=>{const fz=cr||Math.hypot(j.base.x-hx,j.base.z-hz)>SIM;j.g.visible=!fz;if(fz)return;j.g.position.set(j.base.x+Math.sin(T*.2+j.ph)*3,j.base.y+Math.sin(T*.5+j.ph)*1.2,j.base.z+Math.cos(T*.17+j.ph)*3);j.bell.scale.y=.8+.25*Math.sin(T*2+j.ph);if(j.mdl&&!j.mdl.clips)j.mdl.g.scale.y=.85+.2*Math.sin(T*2+j.ph)});
  if(cr){PRED.forEach(p=>p.g.visible=false);return}if(scr!=='play')return;
  const swim=PL.depth>1.5;PL.noise=(PL.noise||0)*.92+cl(Math.hypot(PL.vx,PL.vy,PL.vz)/3,0,1)*.08;
  PRED.forEach(p=>{const q0=p.g.position;if(Math.hypot(q0.x-hx,q0.z-hz)>SIM){p.g.visible=false;return}p.g.visible=true;p.cool-=dt;p.rest-=dt;const pos=p.g.position,dd=Math.hypot(pos.x-hx,pos.y-hy,pos.z-hz),sense=13*(.7+.8*PL.noise);
@@ -940,8 +940,8 @@ function critTick(dt){const cr=PL.mode==='creative';
   else{p.ret-=dt;if(p.ret<=0){p.mode=0;p.rest=6}}
   let tgt;if(p.mode===1)tgt=lvt.set(hx,hy,hz);else if(p.mode===2)tgt=lvt.set(pos.x*2-hx,pos.y,pos.z*2-hz);else{if(pos.distanceTo(p.wp)<4||p.t<=0){p.wp.set(p.home.x+(Math.random()-.5)*50,p.home.y+(Math.random()-.5)*8,p.home.z+(Math.random()-.5)*50);p.t=12}p.t-=dt;tgt=p.wp}
   lmw.copy(tgt).sub(pos);lmw.normalize();p.dir.lerp(lmw,Math.min(1,dt*(p.mode===1?2:1))).normalize();pos.addScaledVector(p.dir,(p.mode===1?2.8:p.mode===2?2.6:2.2)*dt*(PL.mode==='hardcore'?1.15:1));
-  pos.y=Math.max(Math.min(pos.y,-3),sbH(pos.x,pos.z)+2);p.g.lookAt(pos.clone().sub(p.dir));
-  if(p.mode===1&&dd<2.2&&p.cool<=0){p.cool=3;p.mode=2;p.ret=4.5;hurt(6*diffMul(),'A reef shark tore you apart.');toast('A shark bites you! Swim away while it circles back.')}});
+  pos.y=Math.max(Math.min(pos.y,-3),sbH(pos.x,pos.z)+2);p.g.lookAt(pos.clone().sub(p.dir));if(p.mdl)setRole(p.mdl,p.mode===1?(p.mdl.act.fast?'fast':'swim'):'swim',p.mode===1&&!p.mdl.act.fast?1.5:1);
+  if(p.mode===1&&dd<2.2&&p.cool<=0){p.cool=3;p.mode=2;p.ret=4.5;if(p.mdl)playOnce(p.mdl,'attack');hurt(6*diffMul(),'A reef shark tore you apart.');toast('A shark bites you! Swim away while it circles back.')}});
  JELLY.forEach(j=>{if(!j.g.visible)return;j.cool-=dt;const q=j.g.position;if(j.cool<=0&&Math.hypot(q.x-hx,q.z-hz)<1.3&&(Math.abs(q.y-hy)<1.4||Math.abs(q.y-(PL.y+.9))<1.2)){j.cool=3;hurt(4*diffMul(),'Jellyfish stings were too much.');PL.poison=4;PL.slow=3;toast('A jellyfish stings you!')}});
  if(PL.poison>0){PL.poison-=dt;PL.hp-=2.5*diffMul()*dt;PL.hurtAt=performance.now();PL.hurtBy='The jellyfish venom finished you.'}if(PL.slow>0)PL.slow-=dt;
  pingCd-=dt;if(pingT>0){pingT-=dt;const mkU=(m,p,rng)=>{const d=Math.hypot(p.x-hx,p.y-hy,p.z-hz);m.visible=d<rng;m.position.copy(p)};PRED.forEach(p=>mkU(p.mk,p.g.position,80));JELLY.forEach(j=>mkU(j.mk,j.g.position,60));mkU(LVM,levi.position,220);
@@ -999,16 +999,16 @@ function buildHand(left){const g=new THREE.Group(),sd=left?1:-1;
  const fa=new THREE.Mesh(new THREE.CylinderGeometry(.04,.046,.3,10),sleeveM);fa.rotation.x=PI/2;fa.position.set(0,-.004,.2);g.add(fa);
  const cuff=new THREE.Mesh(new THREE.CylinderGeometry(.048,.048,.025,10),cuffM);cuff.rotation.x=PI/2;cuff.position.set(0,-.004,.065);g.add(cuff);
  const panel=new THREE.Mesh(new THREE.PlaneGeometry(.15,.103),new THREE.MeshBasicMaterial({map:htex,transparent:true,side:THREE.DoubleSide}));panel.rotation.x=-PI/2;panel.position.set(0,.056,.2);panel.visible=false;panel.userData.left=left;g.add(panel);
- g.userData={fingers,thumb,panel};return g}
+ const mi=handInst(left);if(mi){[palm,thumb,fa,cuff].concat(fingers).forEach(o=>{o.visible=false});g.add(mi.g)}g.userData={fingers,thumb,panel,mdl:mi};return g}
 function handsTick(){const ss=R.xr.getSession();if(!ss)return;
  GRIPS.forEach((gr,i)=>{const src=ss.inputSources[i];if(!src)return;const h=src.handedness||'right';
   if(gr.userData.h!==h){if(gr.userData.hand)gr.remove(gr.userData.hand);const hd=buildHand(h==='left');gr.add(hd);gr.userData.h=h;gr.userData.hand=hd;hudPs[i]=hd.userData.panel}
   const hd=gr.userData.hand,g=src.gamepad,tr=g&&g.buttons[0]?g.buttons[0].value:0,sq=g&&g.buttons[1]?g.buttons[1].value:0,curl=.3+sq*.95+tr*.15;
-  hd.userData.fingers.forEach((f,k)=>{f.rotation.x=-(curl+(k===0?tr*.5:0));f.userData.tip.rotation.x=-curl*.9});hd.userData.thumb.rotation.z=(h==='left'?1:-1)*(.1+sq*.5);
+  hd.userData.fingers.forEach((f,k)=>{f.rotation.x=-(curl+(k===0?tr*.5:0));f.userData.tip.rotation.x=-curl*.9});hd.userData.thumb.rotation.z=(h==='left'?1:-1)*(.1+sq*.5);if(hd.userData.mdl)fistPose(hd.userData.mdl,Math.min(1,sq*.9+tr*.3));
   hd.userData.panel.visible=scr==='play'&&h==='left'})}
 
 /* ---------- Distance handling, surface height as the sea mesh draws it, version ---------- */
-const VERSION='Version 0.9.1, audio and settings';let SIM=170,LCULL=140,FARUW=0,lcT=0;
+const VERSION='Version 0.9.2, custom models';let SIM=170,LCULL=140,FARUW=0,lcT=0;
 let OC=1200/260;
 function surfV(x,z){const x0=Math.floor(x/OC)*OC,z0=Math.floor(z/OC)*OC,fx=(x-x0)/OC,fz=(z-z0)/OC,a=wh(x0,z0,T),b=wh(x0+OC,z0,T),d=wh(x0,z0+OC,T),e=wh(x0+OC,z0+OC,T);return fx+fz<=1?a+(b-a)*fx+(d-a)*fz:e+(b-e)*(1-fz)+(d-e)*(1-fx)}
 function lootCull(dt){lcT-=dt;if(lcT>0)return;lcT=.4;const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z;loot.forEach(l=>{if(l.taken)return;const p=l.m.position;l.m.visible=Math.abs(p.x-hx)<LCULL&&Math.abs(p.z-hz)<LCULL})}
@@ -1053,6 +1053,52 @@ const vigRing=new THREE.Mesh(new THREE.RingGeometry(.16,1.9,32),new THREE.MeshBa
 function comfort(dt){const sp=scr==='play'?Math.hypot(PL.vx,PL.vy,PL.vz)+(PL.onBoat?Math.abs(BT.v):0):0,tg=vr&&ST.vign?cl((sp-.9)/2.2,0,.7):0,m=vigRing.material;m.opacity+=(tg-m.opacity)*Math.min(1,dt*4);
  vigRing.visible=m.opacity>.01;if(vigRing.visible){const fl=Math.hypot(fw.x,fw.y,fw.z)||1;vigRing.position.set(v3.x+fw.x/fl*.35,v3.y+fw.y/fl*.35,v3.z+fw.z/fl*.35);vigRing.lookAt(v3)}}
 applyQuality();
+
+/* ---------- Custom models: GLB files in the models folder replace the built-in shapes ---------- */
+let MCFGERR='';const MODELS={},MCFG={},MIX=[],MFIT={leviathan:['z',30,PI,'center'],shark:['z',3.4,PI,'center'],jellyfish:['x',1.5,0,'center'],fish:['z',.5,0,'center'],lifeboat:['z',6,PI,'ground'],friend:['y',1.75,0,'ground'],friend_sit:['y',1.3,0,'ground'],hand_left:['z',.3,PI,'center'],hand_right:['z',.3,PI,'center'],yacht:['z',18,PI,'ground'],freighter:['z',36,PI,'ground'],palm:['y',6,0,'ground']};
+['food','water','scrap','cable','battery','fuel','antenna','note','core','bones'].forEach(k=>{MFIT['item_'+k]=['max',.35,0,'center']});
+const MSLOTS=Object.keys(MFIT),ROLE={idle:/idle|rest|float|hover|sit/i,swim:/swim|move|walk|fly|glide|loop/i,fast:/fast|chase|run|sprint/i,attack:/attack|bite|chomp|snap|lunge/i,pulse:/pulse|jelly|bob/i,fist:/fist|grip|close|grab/i};
+/* a fitted copy of a loaded model: scaled to the size the slot needs, centred, turned to the game's front, with its animations ready */
+function inst(n){const m=MODELS[n];if(!m)return null;const f=MFIT[n]||['max',1,0,'center'],c=MCFG[n]||{};
+ const root=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(m.scene):m.scene.clone(true);root.traverse(o=>{if(o.isSkinnedMesh)o.frustumCulled=false});
+ if(!m.fit){m.scene.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(m.scene),sz=bb.getSize(new THREE.Vector3()),ax=c.axis||f[0],len=(ax==='max'?Math.max(sz.x,sz.y,sz.z):sz[ax])||1;
+  m.fit={k:((c.size||f[1])/len)*(c.scale||1),cx:(bb.min.x+bb.max.x)/2,cy:(f[3]==='ground'||c.align==='ground')&&c.align!=='center'?bb.min.y:(bb.min.y+bb.max.y)/2,cz:(bb.min.z+bb.max.z)/2}}
+ const w=new THREE.Group(),inner=new THREE.Group();w.userData.model=true;inner.add(root);root.position.set(-m.fit.cx,-m.fit.cy,-m.fit.cz);inner.scale.setScalar(m.fit.k);
+ inner.rotation.y=c.rotY!==undefined?c.rotY*PI/180:f[2];inner.position.set(c.x||0,c.y||0,c.z||0);w.add(inner);
+ const o={g:w,mix:null,act:{},all:[],cur:null,once:0,clips:false,fp:false,any:null};
+ if(m.animations&&m.animations.length){o.clips=true;o.mix=new THREE.AnimationMixer(root);const map=c.anims||{};
+  m.animations.forEach(cl=>{const a=o.mix.clipAction(cl);o.all.push(a);for(const r in ROLE)if(!o.act[r]&&(map[r]?map[r]===cl.name:ROLE[r].test(cl.name)))o.act[r]=a});o.any=o.all[0];MIX.push(o)}
+ return o}
+function setRole(o,role,ts){if(!o||!o.mix||o.once>0||o.fp)return;const a=o.act[role]||o.act.swim||o.act.idle||o.any;if(!a)return;
+ if(o.cur!==a){a.reset();a.setLoop(THREE.LoopRepeat,Infinity);a.enabled=true;a.setEffectiveWeight(1).fadeIn(.25).play();if(o.cur)o.cur.fadeOut(.25);o.cur=a}a.timeScale=ts||1}
+function playOnce(o,role){if(!o||!o.mix||o.once>0||o.fp)return;const a=o.act[role];if(!a)return;a.reset();a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true;a.setEffectiveWeight(1).fadeIn(.1).play();if(o.cur&&o.cur!==a)o.cur.fadeOut(.1);o.cur=a;o.once=a.getClip().duration}
+function fistPose(o,v){if(!o||!o.mix)return;const a=o.act.fist||o.any;if(!a)return;if(!o.fp){o.fp=true;a.play();a.paused=true}a.time=a.getClip().duration*Math.max(0,Math.min(.999,v));o.mix.update(0)}
+function mixTick(dt){MIX.forEach(o=>{if(o.fp||!o.mix)return;if(o.once>0){o.once-=dt;if(o.once<=0)o.cur=null}let vis=true;for(let q=o.g;q;q=q.parent)if(!q.visible){vis=false;break}if(vis)o.mix.update(dt)})}
+const hideVis=o=>{if(o.isMesh)o.material.visible=false;o.children.forEach(c=>{if(!c.isLight&&!c.userData.model)c.visible=false})};
+const handInst=left=>MODELS[left?'hand_left':'hand_right']?inst(left?'hand_left':'hand_right'):null;
+function applyFish(){const o=inst('fish');if(!o)return;let mesh=null;o.g.updateMatrixWorld(true);o.g.traverse(c=>{if(!mesh&&c.isMesh)mesh=c});if(!mesh)return;mesh.updateWorldMatrix(true,false);
+ fishI.geometry=mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);fishI.material=Array.isArray(mesh.material)?mesh.material[0]:mesh.material;const w=new THREE.Color(1,1,1);for(let i=0;i<FN;i++)fishI.setColorAt(i,w);fishI.instanceColor.needsUpdate=true}
+function applyFriends(){ynp.forEach(n=>{if(n.userData.mg)n.remove(n.userData.mg);n.children.forEach(c=>{if(!c.userData.model)c.visible=!MODELS.friend});if(MODELS.friend){const i=inst('friend');n.add(i.g);n.userData.mg=i.g;setRole(i,'idle')}});
+ npcs.forEach(n=>{if(n.userData.mg)n.remove(n.userData.mg);const ok=!!MODELS.friend_sit;n.children.forEach(c=>{if(!c.userData.model)c.visible=!ok});if(ok){const i=inst('friend_sit');i.g.position.y=.78;n.add(i.g);n.userData.mg=i.g;setRole(i,'idle')}})}
+function applyModel(n){const m=MODELS[n];if(!m)return;
+ if(n==='leviathan'){levi.children.forEach(c=>{if(!c.isLight)c.visible=false});const i=inst(n);levi.add(i.g);levi.userData.mdl=i;setRole(i,'swim')}
+ else if(n==='shark')PRED.forEach(p=>{p.g.children.forEach(c=>c.visible=false);const i=inst(n);p.g.add(i.g);p.mdl=i;setRole(i,'swim');if(i.cur)i.cur.time=Math.random()*3});
+ else if(n==='jellyfish')JELLY.forEach(j=>{j.g.children.forEach(c=>c.visible=false);const i=inst(n);j.g.add(i.g);j.mdl=i;setRole(i,'pulse');if(i.cur)i.cur.time=j.ph});
+ else if(n==='fish')applyFish();
+ else if(n==='lifeboat'){boat.children[0].visible=false;boat.children[1].visible=false;boat.add(inst(n).g)}
+ else if(n==='friend'||n==='friend_sit')applyFriends();
+ else if(n==='yacht'){yacht.children.forEach(c=>{if(!c.isLight&&!ynp.includes(c))c.visible=false});yacht.add(inst(n).g);wreck.children.forEach(c=>{if(!c.isLight)c.visible=false});wreck.add(inst(n).g)}
+ else if(n==='freighter'){frG.children.forEach(c=>{if(!c.isLight)c.visible=false});frG.add(inst(n).g)}
+ else if(n==='palm')PALMS.forEach(g=>{g.children.forEach(c=>c.visible=false);const i=inst(n);i.g.rotation.y=Math.random()*6.28;i.g.scale.setScalar(.85+Math.random()*.3);g.add(i.g)});
+ else if(n.startsWith('item_')){const t=n.slice(5);loot.forEach(l=>{if(l.type!==t)return;hideVis(l.m);const i=inst(n);l.m.add(i.g);if(i.clips)setRole(i,'idle')})}}
+const loadScript=u=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=no;document.head.append(s)});
+async function initModels(){try{const B='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';await loadScript(B+'loaders/GLTFLoader.js');await loadScript(B+'utils/SkeletonUtils.js')}catch(e){return}
+ try{const r=await fetch('models/config.json');if(r.ok)Object.assign(MCFG,await r.json())}catch(e){MCFGERR=e.message;console.warn('models/config.json is not valid JSON: '+e.message)}
+ const L=new THREE.GLTFLoader();MSLOTS.forEach(n=>L.load('models/'+n+'.glb',g=>{try{MODELS[n]=g;applyModel(n)}catch(e){console.error('model '+n,e);delete MODELS[n]}},undefined,()=>{}))}
+if(/^https?:/.test(location.protocol))initModels();
+function modelPanel(){const d=document.createElement('div');d.style.cssText='position:fixed;right:8px;top:8px;z-index:60;max-height:92vh;overflow:auto;padding:10px;background:rgba(2,10,18,.9);border:1px solid #4fb7c7;font:12px monospace;color:#e4f6fb;max-width:340px';document.body.append(d);
+ const upd=()=>{d.innerHTML='<b>Models</b> (models/&lt;name&gt;.glb, optional models/config.json)<br>'+(MCFGERR?'<span style="color:#f77">config.json error: '+MCFGERR+'</span><br>':Object.keys(MCFG).length?'<span style="color:#5f5">config.json read: '+Object.keys(MCFG).join(', ')+'</span><br>':'')+MSLOTS.map(n=>{const m=MODELS[n];return m?'<span style="color:#5f5">● '+n+'</span> '+(m.animations.length?'clips: '+m.animations.map(a=>a.name).join(', '):'no animation'):'<span style="color:#789">○ '+n+'</span>'}).join('<br>')};upd();setInterval(upd,1000)}
+if(/[?&]models/.test(location.search))modelPanel();
 
 /* ---------- Main loop ---------- */
 let T=0,fr=0,last=0;const v3=new THREE.Vector3();
