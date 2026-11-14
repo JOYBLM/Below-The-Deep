@@ -61,7 +61,7 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:8px 22px;margin-bottom:18px}d
 <canvas id="c"></canvas>
 <div id="hud"><div class="bars"><label>Health<i id="b_h"></i></label><label>Oxygen<i id="b_o"></i></label><label>Food<i id="b_f"></i></label><label>Water<i id="b_w"></i></label></div><div id="dep"></div><div id="obj"></div><div id="cap"></div><div id="toast"></div>
 <div id="tmenu"><button class="tb" id="bpause">Pause</button><button class="tb" id="bbag">Interact</button><button class="tb" id="bjour">Log</button><button class="tb" id="bmap">Map</button></div>
-<div id="tact"><button class="tb" id="bhelm">Helm</button><button class="tb" id="bping">Ping</button><button class="tb" id="bdecoy">Decoy</button><button class="tb" id="bdef">Defend</button><button class="tb" id="bfish">Fish</button><button class="tb" id="bskip">Skip</button></div>
+<div id="tact"><button class="tb" id="bhelm">Helm</button><button class="tb" id="bping">Ping</button><button class="tb" id="bdecoy">Decoy</button><button class="tb" id="bdef">Defend</button><button class="tb" id="bfish">Fish</button><button class="tb" id="btag">Tag</button><button class="tb" id="bskip">Skip</button></div>
 <div id="tvert"><button class="tb big" id="bup">Up</button><button class="tb big" id="bdn">Down</button></div></div></div>
 
 <main id="menu" class="screen on">
@@ -114,8 +114,8 @@ const FONT='"Gill Sans","Gill Sans MT",Candara,"Trebuchet MS",sans-serif',COL={s
 /* ---------- Saves and UI state (shared by browser and VR) ---------- */
 const KEY='btd_saves_v1',N=6;
 const load=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(s)&&s.length===N)return s}catch(e){}return Array(N).fill(null)};
-const MP={role:null,code:'',id:'host',peers:{},status:'',tx:null,local:false,hostPending:false,showT:0,bx:0,bz:0,byaw:0,bv:0,bm:0,helmBy:null,stT:0,snT:0,tmT:0,dirty:false,gdirty:false,gT:0,hold:0,fltTaken:[],lastChestJ:'',idx:1,codeIn:'',joined:false,joinT:0};
-const store=()=>{if(MP.role==='guest'){MP.gdirty=true;mpSaveRj();return}if(MP.role==='host')MP.dirty=true;try{localStorage.setItem(KEY,JSON.stringify(saves))}catch(e){}};
+const MP={sfx:'',gen:0,role:null,code:'',id:'host',peers:{},status:'',tx:null,local:false,hostPending:false,showT:0,bx:0,bz:0,byaw:0,bv:0,bm:0,helmBy:null,stT:0,snT:0,tmT:0,dirty:false,gdirty:false,gT:0,hold:0,fltTaken:[],lastChestJ:'',idx:1,codeIn:'',joined:false,joinT:0};
+const store=()=>{if(MP.role==='guest'){MP.gdirty=true;mpSaveRj();return}if(MP.role==='host')MP.dirty=true;try{localStorage.setItem(KEY,JSON.stringify(saves.slice(0,6)))}catch(e){}};
 const CK='btd_cal_v1',D0={h:0,d:0,x:0,e:0};let cal=Object.assign({},D0);try{Object.assign(cal,JSON.parse(localStorage.getItem(CK))||{})}catch(e){}
 let calBack='main',needFit=0,saves=load(),scr='main',mod=null,info=null,vr=false,xrOK=false,dirty=true,hover=null,hits=[];
 const cap=s=>s[0].toUpperCase()+s.slice(1),fmt=m=>m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min';
@@ -334,13 +334,13 @@ function respawn(){leviReset();PL.vx=PL.vy=PL.vz=0;PL.noBoard=0;boat.position.se
 function initPlay(i){const s=saves[i];MAPV.fill(0);if(s.mapv)for(let i=0;i<MAPV.length;i++)MAPV[i]=s.mapv.charCodeAt(i)===49?1:0;LT.bat=s.bat!==undefined?s.bat:100;LT.sh=0;LT.on=true;resetAmb();WT=s.wt!==undefined?s.wt:.92*DL;LDN=Math.floor((WT-.25*DL)/DL);disEnd(true);DZ.next=s.dzn!==undefined?s.dzn:s.mode==='hardcore'?420:600;if(s.dz){const d=s.dz;dzBegin(d.n,d.s,d.x,d.z,d.dur);Object.assign(DZ,{t:d.t,ox:d.ox||0,oz:d.oz||0,wd:d.wd||0,k:1})}Object.assign(PL,{cur:i,mode:s.mode,yaw:0,pitch:0,o2:100,fd:100,wt:100,hp:100,t:0,sv:0,base:s.time,vx:0,vy:0,vz:0,noBoard:0,hint:0,chest:-1,sel:null,helm:0});{const b0=s.boat||{};BT.x=b0.x||0;BT.z=b0.z||0;BT.yaw=b0.yaw||0;BT.fuelT=b0.fuelT||0;BT.v=0;const bb=s.beacon||{};BEACON.on=!!bb.on;BEACON.p=bb.p||0}respawn();loot.forEach((l,i)=>{l.taken=!!l.removed||(s.looted||[]).includes(i);l.m.visible=!l.taken});
  toast(vr?'Left stick swims, right stick turns. A or X opens your backpack, the left menu button pauses.':coarse?'Drag the left side to move and the right side to look. Tap Bag for your backpack.':'Click to look around. WASD to swim, Space up, Shift down. I opens your backpack.')}
 function saveNow(){const s=saves[PL.cur];if(s){s.time=PL.base+Math.floor(PL.t/60);s.wt=WT;s.bat=Math.round(LT.bat);s.mapv=Array.from(MAPV).join('');s.dz=DZ.n?{n:DZ.n,s:DZ.s,t:+DZ.t.toFixed(1),dur:DZ.dur,x:+DZ.x.toFixed(1),z:+DZ.z.toFixed(1),ox:DZ.ox,oz:DZ.oz,wd:DZ.wd}:null;s.dzn=Math.round(DZ.next);s.boat={x:+BT.x.toFixed(1),z:+BT.z.toFixed(1),yaw:+BT.yaw.toFixed(3),fuelT:Math.round(BT.fuelT)};s.beacon={on:BEACON.on,p:Math.round(BEACON.p)};s.ver='0.9.2';store()}}
-function die(msg){if(PL.mode==='creative'&&CON.god){PL.hp=100;return}const s=saves[PL.cur];s.deaths++;tl('death',msg+' ('+Math.max(0,Math.round(PL.depth||0))+' m deep)');
+function die(msg){if(PL.mode==='creative'&&CON.god){PL.hp=100;return}if(MP.role&&nPlayers()>1&&PL.mode==='survival'&&!PL.down&&!PL.dd&&!/swallowed/i.test(msg||'')){goDown(msg);return}const s=saves[PL.cur];s.deaths++;tl('death',msg+' ('+Math.max(0,Math.round(PL.depth||0))+' m deep)');
  if(PL.mode==='hardcore'&&MP.role!=='guest'){saves[PL.cur]=null;store();info={t:'Your run is over',p:msg+' Hardcore saves can’t be restored.'};scr='game';mod=null;document.exitPointerLock&&document.exitPointerLock();ui()}
  else{store();respawn();toast(msg+' You wake up on the lifeboat.')}}
 const pause=()=>{if(scr==='play'){document.exitPointerLock&&document.exitPointerLock();go('pause')}},
  resume=()=>{scr='play';ui();if(!vr&&!coarse&&cv.requestPointerLock)cv.requestPointerLock()},
  quit=()=>{saveNow();document.exitPointerLock&&document.exitPointerLock();const wasG=MP.role==='guest';mpStop();go(wasG?'main':'saves')};
-addEventListener('keydown',e=>{keys[e.code]=1;if(scr==='cut'&&e.code==='Enter')endCut();if(e.code==='KeyI'||e.code==='Tab'||e.code==='KeyE'){if(scr==='play'){e.preventDefault();openBag()}else if(isBag()){e.preventDefault();closeBag()}}if(e.code==='KeyJ'){if(scr==='play')openJournal();else if(isBag())closeBag()}if(e.code==='KeyM'){if(scr==='play')openMap();else if(scr==='map')closeBag()}if(e.code==='KeyN'&&scr==='play')addMark(PL.x,PL.z);if(e.code==='KeyF'&&scr==='play')toggleHelm();if(e.code==='KeyP'&&scr==='play')doPing();if(e.code==='KeyG'&&scr==='play')deployDecoy();if(e.code==='KeyL'&&scr==='play'){LT.on=!LT.on;toast(LT.on?'Flashlight on.':'Flashlight off.')}if(e.code==='KeyR'&&scr==='play')useFlare();if(e.code==='KeyH'&&scr==='play')useShock();if(e.code==='KeyV'&&scr==='play')toggleFish();if(e.key==='Escape'&&isBag())closeBag();if(scr==='play'&&e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>{keys[e.code]=0});
+addEventListener('keydown',e=>{keys[e.code]=1;if(scr==='cut'&&e.code==='Enter')endCut();if(e.code==='KeyI'||e.code==='Tab'||e.code==='KeyE'){if(scr==='play'){e.preventDefault();openBag()}else if(isBag()){e.preventDefault();closeBag()}}if(e.code==='KeyJ'){if(scr==='play')openJournal();else if(isBag())closeBag()}if(e.code==='KeyM'){if(scr==='play')openMap();else if(scr==='map')closeBag()}if(e.code==='KeyN'&&scr==='play')addMark(PL.x,PL.z);if(e.code==='KeyF'&&scr==='play')toggleHelm();if(e.code==='KeyP'&&scr==='play')doPing();if(e.code==='KeyG'&&scr==='play')deployDecoy();if(e.code==='KeyL'&&scr==='play'){LT.on=!LT.on;toast(LT.on?'Flashlight on.':'Flashlight off.')}if(e.code==='KeyR'&&scr==='play')useFlare();if(e.code==='KeyH'&&scr==='play')useShock();if(e.code==='KeyV'&&scr==='play')toggleFish();if(e.code==='KeyT'&&scr==='play')tagHere();if(e.key==='Escape'&&isBag())closeBag();if(scr==='play'&&e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>{keys[e.code]=0});
 cv.addEventListener('click',()=>{if((scr==='play'||scr==='cut')&&!vr&&!coarse&&cv.requestPointerLock)cv.requestPointerLock()});
 addEventListener('mousemove',e=>{if(document.pointerLockElement===cv&&(scr==='play'||scr==='cut')){PL.yaw-=e.movementX*.0025;PL.pitch=Math.max(-1.5,Math.min(1.5,PL.pitch-e.movementY*.0025))}});
 document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&scr==='play'&&!vr&&!coarse)pause()});
@@ -386,7 +386,7 @@ function world(dt){if(scr==='play'){tick(dt);listen(fw)}else if(scr==='cut')cutT
  lant.intensity=1.3+Math.sin(T*9)*.12+Math.sin(T*23)*.08;
  floats.forEach(f=>{f.m.position.y=wh(f.m.position.x,f.m.position.z,T)+.15;f.m.rotation.y+=dt*.4});
  const bq=bL(PL.x,PL.z),op=Math.hypot(bq.x,bq.z-2.2)<2.2&&PL.y>boat.position.y?1.2:0;lids.forEach(l=>l.rotation.x+=(op-l.rotation.x)*Math.min(1,dt*5));
- npcs.forEach((n,i)=>n.rotation.z=Math.sin(T*.8+i)*.04);npcTick(dt);atTick(dt);todTick(dt);dzSim(dt);dzFx(dt);boatHint();flareTick(dt);ambTick(dt);dirTick(dt);rodTick(dt);mapTick(dt);zoneTick(dt);storyTick(dt);kelp.forEach(k=>{if(Math.abs(k.position.x-PL.x)<110&&Math.abs(k.position.z-PL.z)<110)k.rotation.z=Math.sin(T*.7+k.userData.p)*.1});
+ npcs.forEach((n,i)=>n.rotation.z=Math.sin(T*.8+i)*.04);npcTick(dt);atTick(dt);todTick(dt);dzSim(dt);dzFx(dt);boatHint();flareTick(dt);ambTick(dt);dirTick(dt);rodTick(dt);mapTick(dt);zoneTick(dt);storyTick(dt);reviveTick(dt);tagTick(dt);kelp.forEach(k=>{if(Math.abs(k.position.x-PL.x)<110&&Math.abs(k.position.z-PL.z)<110)k.rotation.z=Math.sin(T*.7+k.userData.p)*.1});
  const surf=surfV(v3.x,v3.z),und=v3.y<surf+.08;AU.und=und;uw.visible=und;ocean.visible=!und;S.fog=und?fogU:null;headL.visible=und;if(und&&v3.y<surf-.5)FARUW=1;else if(!und)FARUW=0;{const wf=FARUW?150:1500;if(cam.far!==wf){cam.far=wf;cam.updateProjectionMatrix()}}uw.scale.setScalar(FARUW?.4:1);
  if(und){const d=Math.max(0,surf-v3.y);lampTick(dt,d);uw.position.copy(v3);fogU.color.copy(c0).lerp(c1,Math.min(1,d/40));uw.material.color.copy(fogU.color);fogU.density=(.065+d*.0016)*CON.fog;headL.position.copy(v3)}
  if(PL.tt>0)PL.tt-=dt;if((PL.hud-=dt)<=0){PL.hud=.2;hudUp()}}
@@ -801,7 +801,7 @@ const OBJ=[
  {id:'core',t:'Recover the transmitter core from the trench',h:'The trench lies far to the right of the boat, over 100 m down. The research pod holds the core. The leviathan patrols there.',f:s=>((s.got||{}).core||0)>=1},
  {id:'beacon',t:'Build the rescue beacon',h:'It needs the antenna, the transmitter core, two batteries, a fuel can, cable and scrap. Build it at the workbench, then switch it on.',f:s=>(s.gear||{}).beacon>=1},
  {id:'signal',t:'Broadcast the signal and survive',h:'The beacon needs four minutes. The leviathan will hunt the boat. Craft decoy buoys and launch them far away to lure it off.',f:s=>s.ending}];
-const curObj=()=>{const s=saves[PL.cur];return OBJ.find(o=>!(s.od&&s.od[o.id]))||null},objText=()=>{if(MP.role==='host'&&MP.showT>0)return 'Room code '+MP.code+' ('+(1+Object.keys(MP.peers).length)+' of 4 players)';if(BEACON.on)return 'Beacon: '+Math.floor(BEACON.p/SIGNAL_TIME*100)+'% sent';const c=curObj();return c?'Objective: '+c.t:'All objectives done'};
+const curObj=()=>{const s=saves[PL.cur];return OBJ.find(o=>!(s.od&&s.od[o.id]))||null},objText=()=>{if(PL.down>0)return 'You are down. A teammate can revive you: '+Math.ceil(PL.down)+' s';if(MP.role==='host'&&MP.showT>0)return 'Room code '+MP.code+' ('+(1+Object.keys(MP.peers).length)+' of 4 players)';if(BEACON.on)return 'Beacon: '+Math.floor(BEACON.p/SIGNAL_TIME*100)+'% sent';const c=curObj();return c?'Objective: '+c.t:'All objectives done'};
 function objTick(dt){PL.ot=(PL.ot||0)-dt;if(PL.ot>0)return;PL.ot=.5;const s=saves[PL.cur];s.od=s.od||{};
  if(PL.depth>15&&Math.hypot(PL.x+5,PL.z+24)<16)setFlag('wreck');if(PL.depth>50&&Math.hypot(PL.x-CACHE.x,PL.z-CACHE.z)<14)setFlag('cache');if(PL.depth>30&&Math.hypot(PL.x-FRP.x,PL.z-FRP.z)<30)setFlag('freighter');
  let ch=false;OBJ.forEach(o=>{if(!s.od[o.id]&&o.f(s)){s.od[o.id]=1;ch=true;tl('obj',o.id)}});const c=curObj();
@@ -917,7 +917,7 @@ addPocket(FP(0,7,13),0);addPocket(FP(0,4,-14),1);
 /* ---------- Step 5: predators, jellyfish, noise and sonar ---------- */
 RECIPES.push({id:'sonar',n:'Sonar',s:'Sonar',ic:'sonar',d:'Press P (right trigger in VR, Ping on a phone) to see creatures around you for a few seconds. The leviathan hears every ping.',need:{scrap:4,cable:2,battery:1},g:['sonar',1]});
 const sharkM=new THREE.MeshStandardMaterial({color:0x56646c,roughness:.6,flatShading:true,emissive:0x0a1014}),PRED=[],JELLY=[],mkM=new THREE.MeshBasicMaterial({color:0xff5040,fog:false,depthTest:false,transparent:true,opacity:.9});
-function hurt(d,by){if(PL.mode==='creative'&&CON.god)return;if((vr||coarse)&&/shark|anglerfish|eel/i.test(by||'')&&scr==='play'&&!PL.rf){PL.rf=1;setTimeout(()=>{PL.rf=0},5000);setTimeout(defend,200)}snd('hurt');PL.hp-=d;PL.hurtAt=performance.now();PL.hurtBy=by;PL.flash=1}
+function hurt(d,by){if(PL.mode==='creative'&&CON.god)return;if(PL.down>0)return;if((vr||coarse)&&/shark|anglerfish|eel/i.test(by||'')&&scr==='play'&&!PL.rf){PL.rf=1;setTimeout(()=>{PL.rf=0},5000);setTimeout(defend,200)}snd('hurt');PL.hp-=d;PL.hurtAt=performance.now();PL.hurtBy=by;PL.flash=1}
 const marker=r=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,8,6),mkM);m.renderOrder=45;m.visible=false;S.add(m);return m};
 function mkShark(x,y,z){const g=new THREE.Group(),b=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),sharkM);b.scale.set(.5,.42,1.7);g.add(b);
  const f=new THREE.Mesh(new THREE.ConeGeometry(.3,.8,4),sharkM);f.position.set(0,.55,0);f.rotation.x=-.2;g.add(f);
@@ -1026,22 +1026,22 @@ const myName=()=>(MP.name||'').trim().slice(0,12)||(MP.role==='host'?'Host':'Pla
 const REM={},LVW={},MPCODE='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',MPPREF='btd-coop-',mpName=i=>i===0?'Host':'Player '+(i+1);
 const newCode=()=>{let c='';for(let i=0;i<5;i++)c+=MPCODE[Math.floor(Math.random()*MPCODE.length)];return c};
 function mpSend(m,to,except){if(!MP.tx)return;try{MP.tx.send(m,to,except)}catch(e){}}
-const mpEv=e=>{if(MP.role==='guest')mpSend({t:'ev',...e});else if(MP.role==='host'&&e.e==='dec')mpSend({t:'ev',...e})};
+const mpEv=e=>{if(MP.role==='guest')mpSend({t:'ev',...e});else if(MP.role==='host'&&(e.e==='dec'||e.e==='tag'))mpSend({t:'ev',...e})};
 const mpHelm=on=>{if(MP.role==='guest')mpSend({t:'ev',e:'helm',on});else if(MP.role==='host'&&!on&&MP.helmBy==='host')MP.helmBy=null};
 function netOpen(role,code,cb){let done=false;const fin=e=>{if(done)return;done=true;cb(e)};
- if(/[?&]mp=local/.test(location.search)){MP.local=true;const ch=new BroadcastChannel('btd-local-'+code),id=role==='host'?'host':'g'+Math.random().toString(36).slice(2,7);MP.id=id;
+ if(/[?&]mp=local/.test(location.search)){MP.local=true;const ch=new BroadcastChannel('btd-local-'+code+MP.sfx),id=role==='host'?'host':'g'+Math.random().toString(36).slice(2,7);MP.id=id;
   ch.onmessage=e=>{const d=e.data;if(d.from===id||(d.to&&d.to!==id)||d.except===id)return;if(role==='host'&&d.msg.t==='hello'&&!MP.peers[d.from]&&Object.keys(MP.peers).length>=3){ch.postMessage({from:id,to:d.from,msg:{t:'full'}});return}onMsg(d.from,d.msg)};
   MP.tx={send:(m,to,except)=>ch.postMessage({from:id,to:to||(role==='host'?null:'host'),except,msg:JSON.parse(JSON.stringify(m))}),close:()=>ch.close()};setTimeout(()=>fin(null),20);return}
  loadScript('https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js').then(()=>{
-  if(role==='host'){const pr=new Peer(MPPREF+code);MP.peer=pr;pr.on('error',e=>fin(e.type==='unavailable-id'?'retry':(e.type||'network error')));
+  if(role==='host'){const pr=new Peer(MPPREF+code+MP.sfx,PCFG());MP.peer=pr;pr.on('error',e=>fin(e.type==='unavailable-id'?'retry':(e.type||'network error')));
    pr.on('open',()=>{MP.id='host';MP.tx={send:(m,to,except)=>{if(to){const q=MP.peers[to];if(q&&q.c&&q.c.open)q.c.send(m)}else for(const k in MP.peers){const q=MP.peers[k];if(k!==except&&q.c&&q.c.open)q.c.send(m)}},close:()=>{try{pr.destroy()}catch(e){}}};fin(null)});
    pr.on('connection',c=>{c.on('data',m=>onMsg(c.peer,m));c.on('close',()=>peerGone(c.peer));c.on('error',()=>peerGone(c.peer));
     c.on('open',()=>{if(Object.keys(MP.peers).length>=3){c.send({t:'full'});setTimeout(()=>c.close(),400);return}MP.peers[c.peer]={c}})})}
-  else{const pr=new Peer();MP.peer=pr;pr.on('error',e=>fin(e.type==='peer-unavailable'?'Room not found. Check the code.':(e.type||'network error')));
-   pr.on('open',id=>{MP.id=id;const c=pr.connect(MPPREF+code,{reliable:true});c.on('open',()=>{MP.tx={send:m=>{if(c.open)c.send(m)},close:()=>{try{pr.destroy()}catch(e){}}};c.on('data',m=>onMsg('host',m));fin(null)});c.on('close',()=>onMsg('host',{t:'lost'}));c.on('error',()=>fin('connection error'))})}
+  else{const pr=new Peer(undefined,PCFG());MP.peer=pr;pr.on('error',e=>fin(e.type==='peer-unavailable'?'Room not found. Check the code.':(e.type||'network error')));
+   pr.on('open',id=>{MP.id=id;const c=pr.connect(MPPREF+code+MP.sfx,{reliable:true});c.on('open',()=>{MP.tx={send:m=>{if(c.open)c.send(m)},close:()=>{try{pr.destroy()}catch(e){}}};c.on('data',m=>onMsg('host',m));fin(null)});c.on('close',()=>onMsg('host',{t:'lost'}));c.on('error',()=>fin('connection error'))})}
  }).catch(()=>fin('Could not load the matchmaking service'))}
 function peerGone(id){if(VC.pan[id]){try{VC.pan[id].c.close()}catch(e){}delete VC.pan[id]}delete VC.calls[id];const r=REM[id];if(r&&r.av){WG.remove(r.av.g);WG.remove(r.av.hl);WG.remove(r.av.hr)}if(r&&MP.role==='host')toast(r.name+' left.');delete REM[id];delete LVW[id];delete MP.peers[id];if(MP.helmBy===id)MP.helmBy=null}
-function mpStop(){voiceStop();{const e=$('net');if(e)e.style.display='none'}const wasG=MP.role==='guest';if(wasG)mpSend({t:'bye'});else if(MP.role==='host')mpSend({t:'closed'});const tx=MP.tx;setTimeout(()=>{try{tx&&tx.close()}catch(e){}},400);for(const id in REM)peerGone(id);MP.role=null;MP.tx=null;MP.peers={};MP.helmBy=null;MP.joined=false;clearTimeout(MP.joinT);MP.fltTaken=[];if(wasG){saves.length=6;PL.cur=0;levi.visible=false;LV.on=false}}
+function mpStop(){voiceStop();{const e=$('net');if(e)e.style.display='none'}const wasG=MP.role==='guest';if(wasG)mpSend({t:'bye'});else if(MP.role==='host')mpSend({t:'closed'});const tx=MP.tx;setTimeout(()=>{try{tx&&tx.close()}catch(e){}},400);for(const id in REM)peerGone(id);MP.role=null;MP.tx=null;MP.peers={};MP.helmBy=null;MP.joined=false;clearTimeout(MP.joinT);MP.fltTaken=[];if(wasG||saves.length>6){saves.length=6;PL.cur=0;levi.visible=false;LV.on=false}}
 function mpHost(){const code=newCode();MP.status='';MP.role='host';MP.code=code;MP.peers={};MP.fltTaken=[];
  netOpen('host',code,err=>{if(err==='retry'){mpStop();return mpHost()}if(err){toast('Could not open a room: '+err);MP.role=null;return}MP.showT=45;toast('Room code: '+code+'. Share it with up to 3 friends.');voiceStart()})}
 function mpJoin(code){code=(code||'').trim().toUpperCase();if(code.length<4){MP.status='Type the room code first.';ui();return}MP.status='Connecting to '+code+'...';ui();MP.role='guest';MP.code=code;MP.joined=false;
@@ -1053,7 +1053,7 @@ function applyTeam(t){const s=saves[PL.cur];if(!s)return;s.gear=t.gear;s.flags=t
  t.flt.forEach(id=>{const k=floats.findIndex(f=>f.id===id);if(k>=0){WG.remove(floats[k].m);floats.splice(k,1)}});BEACON.on=!!t.bc.on;BEACON.p=t.bc.p;refreshBoat()}
 function mergeTeam(m){const s=saves[PL.cur],g=gearOf();for(const k in m.gear)g[k]=Math.max(g[k]||0,m.gear[k]);s.flags=Object.assign(s.flags||{},m.flags);s.day=Math.max(s.day||1,m.day||1);if(m.chests)s.chests=m.chests;MP.dirty=true;refreshBoat()}
 function myState(){let hd=null;if(vr){hd=[];ctl.forEach(c=>{c.getWorldPosition(hww);hd.push(+hww.x.toFixed(2),+hww.y.toFixed(2),+hww.z.toFixed(2))})}
- const yaw=vr?Math.atan2(-fw.x,-fw.z):PL.yaw;return{x:+PL.x.toFixed(2),y:+PL.y.toFixed(2),z:+PL.z.toFixed(2),yaw:+yaw.toFixed(3),pt:+PL.pitch.toFixed(2),dp:+(PL.depth||0).toFixed(1),nz:+(PL.noise||0).toFixed(2),vr:vr?1:0,hd,hp:Math.round(PL.hp),on:PL.onBoat?1:0,thr:+(BT.thr||0).toFixed(2),trn:+(BT.turn||0).toFixed(2),hm:PL.helm?1:0,pn:MP.ping|0}}
+ const yaw=vr?Math.atan2(-fw.x,-fw.z):PL.yaw;return{x:+PL.x.toFixed(2),y:+PL.y.toFixed(2),z:+PL.z.toFixed(2),yaw:+yaw.toFixed(3),pt:+PL.pitch.toFixed(2),dp:+(PL.depth||0).toFixed(1),nz:+(PL.noise||0).toFixed(2),vr:vr?1:0,hd,hp:Math.round(PL.hp),on:PL.onBoat?1:0,thr:+(BT.thr||0).toFixed(2),trn:+(BT.turn||0).toFixed(2),hm:PL.helm?1:0,pn:MP.ping|0,dn:PL.down>0?1:0}}
 function snapshot(){const ps=[Object.assign({id:'host',n:myName()},myState())];for(const id in REM){const r=REM[id];if(r.raw)ps.push(Object.assign({id,n:r.name},r.raw))}
  return{t:'snap',T:+T.toFixed(2),dw:+DZ.warn.toFixed(2),wt:+WT.toFixed(1),dz:DZ.n?{n:DZ.n,s:DZ.s,x:+DZ.x.toFixed(1),z:+DZ.z.toFixed(1),a:+DZ.t.toFixed(1),d:DZ.dur}:0,bt:{x:+BT.x.toFixed(2),z:+BT.z.toFixed(2),yaw:+BT.yaw.toFixed(3),v:+BT.v.toFixed(2),m:BT.motor?1:0,hb:MP.helmBy},
   lv:{on:LV.on?1:0,x:+levi.position.x.toFixed(1),y:+levi.position.y.toFixed(1),z:+levi.position.z.toFixed(1),dx:+LV.dir.x.toFixed(2),dy:+LV.dir.y.toFixed(2),dz:+LV.dir.z.toFixed(2),m:LV.mode},
@@ -1070,12 +1070,12 @@ function mkAvatar(idx,name){const g=new THREE.Group(),b=new THREE.Group(),suit=m
  box3(.5,.7,.28,suit,0,.23,0,b);const hd=new THREE.Mesh(new THREE.SphereGeometry(.15,10,8),skin);hd.position.y=.74;b.add(hd);box3(.22,.5,.14,gray,0,.25,.2,b);
  const limb=(x,y,len,w)=>{const p=new THREE.Group();p.position.set(x,y,0);box3(w,len,w,suit,0,-len/2,0,p);b.add(p);return p},lg=[limb(-.11,-.12,.55,.14),limb(.11,-.12,.55,.14)],ar=[limb(-.34,.52,.5,.1),limb(.34,.52,.5,.1)];
  const mk=()=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.06,8,6),skin);m.visible=false;WG.add(m);return m},hl=mk(),hr=mk(),sp=mkLabel(name);sp.position.y=2.05;g.add(sp);WG.add(g);return{g,b,lg,ar,hl,hr,sp,nm:name,spd:0,ph:0,lp:null}}
-function avPose(a,sw,m,dt){a.ph+=dt*(sw?4:7)*(.35+m);a.b.rotation.x+=((sw?-1.15:0)-a.b.rotation.x)*Math.min(1,dt*5);a.b.position.y=.9+(sw?0:Math.abs(Math.sin(a.ph))*.04*m);
+function avPose(a,sw,m,dt){a.ph+=dt*(sw?4:7)*(.35+m);a.b.rotation.x+=((a.dn?-1.5:sw?-1.15:0)-a.b.rotation.x)*Math.min(1,dt*5);a.b.position.y=.9+(sw?0:Math.abs(Math.sin(a.ph))*.04*m);
  for(let i=0;i<2;i++){const o=i*Math.PI;if(sw){a.lg[i].rotation.x=Math.sin(a.ph*1.7+o)*(.15+.5*m);a.ar[i].rotation.x=-.3+Math.sin(a.ph+o)*.8*m}else{a.lg[i].rotation.x=Math.sin(a.ph+o)*.7*m;a.ar[i].rotation.x=-Math.sin(a.ph+o)*.5*m+Math.sin(T*1.5+o)*.03}}}
 function avatarTick(dt){const k=Math.min(1,dt*10);for(const id in REM){const r=REM[id],q=r.raw;if(!q||q.x===undefined)continue;if(!r.av)r.av=mkAvatar(r.idx!==undefined?r.idx:(id==='host'?0:2),r.name);const a=r.av,near=Math.hypot(q.x-PL.x,q.z-PL.z)<SIM+80;a.g.visible=near;
-  {const spk=!!(VC.pan[id]&&VC.pan[id].spk>0);if(a.nm!==r.name||!!a.spk!==spk){a.g.remove(a.sp);a.sp.material.map.dispose();a.sp=mkLabel(r.name,spk);a.sp.position.y=2.05;a.g.add(a.sp);a.nm=r.name;a.spk=spk}}
+  {const spk=!!(VC.pan[id]&&VC.pan[id].spk>0),nm=r.name+(q.dn?' (down)':'');if(a.nm!==nm||!!a.spk!==spk){a.g.remove(a.sp);a.sp.material.map.dispose();a.sp=mkLabel(nm,spk);a.sp.position.y=2.05;a.g.add(a.sp);a.nm=nm;a.spk=spk}}
   if(!near){a.hl.visible=a.hr.visible=false;continue}const p=a.g.position,ox=p.x,oy=p.y,oz=p.z;p.x+=(q.x-p.x)*k;p.y+=(q.y-p.y)*k;p.z+=(q.z-p.z)*k;let dy=q.yaw-a.g.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));a.g.rotation.y+=dy*k;
-  const sw=q.dp>1.5;a.spd+=(Math.hypot(p.x-ox,p.y-oy,p.z-oz)/Math.max(dt,.001)-a.spd)*Math.min(1,dt*5);const m=Math.min(1,a.spd/1.4);avPose(a,sw,m,dt);
+  const sw=q.dp>1.5;a.spd+=(Math.hypot(p.x-ox,p.y-oy,p.z-oz)/Math.max(dt,.001)-a.spd)*Math.min(1,dt*5);const m=Math.min(1,a.spd/1.4);a.dn=q.dn;avPose(a,sw,a.dn?0:m,dt);
   const h=q.hd;[a.hl,a.hr].forEach((mm,i)=>{if(h&&h.length>=6){mm.visible=true;mm.position.x+=(h[i*3]-mm.position.x)*k;mm.position.y+=(h[i*3+1]-mm.position.y)*k;mm.position.z+=(h[i*3+2]-mm.position.z)*k}else mm.visible=false})}}
 /* messages */
 function onMsg(from,m){if(!m||!MP.role)return;
@@ -1096,6 +1096,8 @@ function onMsg(from,m){if(!m||!MP.role)return;
   else if(m.t==='hurt'){hurt(m.d,m.by);if(m.m)toast(m.m)}
   else if(m.t==='die')die(m.by);
   else if(m.t==='ram')ramFx();
+  else if(m.t==='revive')reviveMe();
+  else if(m.t==='ev'&&m.e==='tag')spawnTag(m.x,m.y,m.z,m.n);
   else if(m.t==='bolt')bolt(m.x,m.z,m.s);
   else if(m.t==='dzhit')dzHit(m.m);
   else if(m.t==='npcx')npcFx(m.r,m.i);
@@ -1107,13 +1109,16 @@ function onMsg(from,m){if(!m||!MP.role)return;
   else if(m.t==='ver'){MP.status='Your version differs from the host ('+m.v+').';mpStop();ui()}
   else if(m.t==='lost')mpLost();
   else if(m.t==='po')MP.ping=Math.round(performance.now()-m.c);
-  else if(m.t==='closed'){if(MP.joined){toast('The host left the game.');quit()}}}}
+  else if(m.t==='closed'){if(MP.joined&&!MP.rc){MP.rc=1;MP.mig=0;voiceStop();toast('The host left. Choosing a new host...');setTimeout(hostMigrate,800)}}}}
 function hostEvent(from,e){const s=saves[PL.cur];
  if(e.e==='loot'){const l=loot[e.i];if(l&&!l.taken){l.taken=true;l.m.visible=false;(s.looted=s.looted||[]).push(e.i);(s.got=s.got||{})[e.ty]=(s.got[e.ty]||0)+1;MP.dirty=true}}
  else if(e.e==='flt'){const k=floats.findIndex(f=>f.id===e.id);if(k>=0){WG.remove(floats[k].m);floats.splice(k,1)}if(!MP.fltTaken.includes(e.id))MP.fltTaken.push(e.id);MP.dirty=true}
  else if(e.e==='dec'){spawnDecoy(e.x,e.z);mpSend({t:'ev',e:'dec',x:e.x,z:e.z},null,from)}
  else if(e.e==='npc')npcEat(e.r);
  else if(e.e==='sleep')skipNight();
+ else if(e.e==='rev')reviveMe();
+ else if(e.e==='rev2')mpSend({t:'revive'},e.id);
+ else if(e.e==='tag'){spawnTag(e.x,e.y,e.z,e.n);mpSend({t:'ev',e:'tag',x:e.x,y:e.y,z:e.z,n:e.n},null,from)}
  else if(e.e==='ping'){if(LV.on&&LV.mode===0&&Math.hypot(levi.position.x-e.x,levi.position.y-e.y,levi.position.z-e.z)<220){LV.mode=1;LV.calm=0;LV.tid=from}}
  else if(e.e==='beacon'){BEACON.on=!!e.on;if(e.on)LV.cool=0;MP.dirty=true}
  else if(e.e==='helm'){if(e.on){if(!MP.helmBy||MP.helmBy===from){MP.helmBy=from;mpSend({t:'hr',ok:1},from)}else mpSend({t:'hr',ok:0},from)}else if(MP.helmBy===from)MP.helmBy=null}}
@@ -1135,14 +1140,18 @@ function allP(){const a=[{id:'host',hx:vr?v3.x:PL.x,hy:vr?v3.y:PL.y+1.7,hz:vr?v3
  if(MP.role==='host')for(const id in REM){const r=REM[id];if(r.alive&&r.raw&&r.raw.x!==undefined)a.push({id,hx:r.raw.x,hy:r.raw.y+1.7,hz:r.raw.z,depth:r.raw.dp||0,noise:r.raw.nz||0,loc:false})}return a}
 const VC={ms:null,calls:{},pan:{},mute:false};
 async function voiceStart(){if(MP.local||VC.ms||!navigator.mediaDevices||!MP.peer)return;try{VC.ms=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});if(AC){VC.la=AC.createAnalyser();VC.la.fftSize=256;VC.lb=new Uint8Array(256);AC.createMediaStreamSource(VC.ms).connect(VC.la)}MP.peer.on('call',c=>{c.answer(VC.ms);voiceAttach(c)});toast('Voice chat is on. Players near you can hear you.')}catch(e){toast('Voice chat needs microphone access.')}}
-function voiceAttach(c){const id=c.peer===MPPREF+MP.code?'host':c.peer;c.on('stream',st=>{if(VC.pan[id]||!AC)return;const a=new Audio();a.srcObject=st;a.muted=true;a.play().catch(()=>{});const src=AC.createMediaStreamSource(st),pn=AC.createPanner(),lp=AC.createBiquadFilter();pn.panningModel='HRTF';pn.distanceModel='inverse';pn.refDistance=2;pn.maxDistance=60;pn.rolloffFactor=1.6;lp.type='lowpass';lp.frequency.value=20000;src.connect(lp);lp.connect(pn);pn.connect(VG);const an=AC.createAnalyser();an.fftSize=256;src.connect(an);VC.pan[id]={pn,lp,c,an,buf:new Uint8Array(256),spk:0}});c.on('close',()=>{delete VC.pan[id];delete VC.calls[id]})}
-function voiceTick(dt){if(!VC.ms||!MP.peer||!AC)return;VC.me=!!VC.la&&!VC.mute&&vlv(VC.la,VC.lb)>.06;const mine=MP.role==='host'?MPPREF+MP.code:MP.id;
- for(const id in REM){const pid=id==='host'?MPPREF+MP.code:id,r=REM[id];if(!VC.calls[id]&&mine<pid){try{const c=MP.peer.call(pid,VC.ms);VC.calls[id]=c;voiceAttach(c)}catch(e){}}
+function voiceAttach(c){const id=c.peer===MPPREF+MP.code+MP.sfx?'host':c.peer;c.on('stream',st=>{if(VC.pan[id]||!AC)return;const a=new Audio();a.srcObject=st;a.muted=true;a.play().catch(()=>{});const src=AC.createMediaStreamSource(st),pn=AC.createPanner(),lp=AC.createBiquadFilter();pn.panningModel='HRTF';pn.distanceModel='inverse';pn.refDistance=2;pn.maxDistance=60;pn.rolloffFactor=1.6;lp.type='lowpass';lp.frequency.value=20000;src.connect(lp);lp.connect(pn);pn.connect(VG);const an=AC.createAnalyser();an.fftSize=256;src.connect(an);VC.pan[id]={pn,lp,c,an,buf:new Uint8Array(256),spk:0}});c.on('close',()=>{delete VC.pan[id];delete VC.calls[id]})}
+function voiceTick(dt){if(!VC.ms||!MP.peer||!AC)return;VC.me=!!VC.la&&!VC.mute&&vlv(VC.la,VC.lb)>.06;const mine=MP.role==='host'?MPPREF+MP.code+MP.sfx:MP.id;
+ for(const id in REM){const pid=id==='host'?MPPREF+MP.code+MP.sfx:id,r=REM[id];if(!VC.calls[id]&&mine<pid){try{const c=MP.peer.call(pid,VC.ms);VC.calls[id]=c;voiceAttach(c)}catch(e){}}
   const v=VC.pan[id];if(v&&r.raw){v.spk=vlv(v.an,v.buf)>.06?.5:Math.max(0,v.spk-dt);const p=v.pn,x=r.raw.x,y=r.raw.y+1.6,z=r.raw.z;if(p.positionX){p.positionX.value=x;p.positionY.value=y;p.positionZ.value=z}else p.setPosition(x,y,z);v.lp.frequency.value=(PL.depth>1.2)!==(r.raw.dp>1.2)?500:PL.depth>1.2?2200:20000}}}
 function voiceStop(){if(VC.ms)VC.ms.getTracks().forEach(t=>t.stop());VC.ms=null;VC.calls={};VC.pan={};VC.mute=false}
 function mpSaveRj(){try{const s=saves[PL.cur];localStorage.setItem('btd_rejoin',JSON.stringify({code:MP.code,t:Date.now(),inv:s.inv,od:s.od,deaths:s.deaths,deepest:s.deepest,crafted:s.crafted,time:s.time}))}catch(e){}}
-function mpLost(){if(MP.role!=='guest'||!MP.joined||MP.rc)return;MP.rc=1;toast('Connection lost. Reconnecting...');let n=0;voiceStop();
- const go1=()=>{if(MP.role!=='guest')return;try{MP.tx&&MP.tx.close()}catch(e){}netOpen('guest',MP.code,err=>{if(!err){MP.rc=0;MP.lastSnap=performance.now();mpSend({t:'hello',v:VERSION,n:(MP.name||'').trim().slice(0,12),rj:1});voiceStart();return}if(++n<8)setTimeout(go1,3000);else{MP.rc=0;toast('Could not reconnect.');quit()}})};setTimeout(go1,1500)}
+function mpLost(){if(MP.role!=='guest'||!MP.joined||MP.rc)return;MP.rc=1;MP.mig=0;toast('Connection lost. Reconnecting...');voiceStop();setTimeout(()=>mpTry(0),1500)}
+function mpTry(n){if(MP.role!=='guest')return;try{MP.tx&&MP.tx.close()}catch(e){}netOpen('guest',MP.code,err=>{if(!err){MP.rc=0;MP.mig=0;MP.lastSnap=performance.now();mpSend({t:'hello',v:VERSION,n:(MP.name||'').trim().slice(0,12),rj:1});voiceStart();return}
+  if(!MP.mig&&n>=2){hostMigrate();return}if(MP.mig&&n>=10){MP.rc=0;MP.mig=0;toast('Could not reconnect.');quit();return}setTimeout(()=>mpTry(n+1),MP.mig?2500:3000)})}
+function hostMigrate(){const ids=[MP.id,...Object.keys(REM).filter(k=>k!=='host')].sort();MP.gen++;MP.sfx='g'+MP.gen;MP.mig=1;toast('The host is gone. Choosing a new host...');if(ids[0]===MP.id)promote();else mpTry(0)}
+function promote(){for(const id in REM)peerGone(id);MP.peers={};MP.role='host';MP.helmBy=null;try{MP.tx&&MP.tx.close()}catch(e){}MP.tx=null;
+ netOpen('host',MP.code,err=>{if(err){MP.rc=0;MP.mig=0;MP.role='guest';toast('Could not take over the game.');quit();return}MP.rc=0;MP.mig=0;MP.showT=30;MP.dirty=true;toast('The host left. You are the host now.');voiceStart()})}
 const vlv=(an,b)=>{an.getByteTimeDomainData(b);let m=0;for(let i=0;i<b.length;i++)m=Math.max(m,Math.abs(b[i]-128));return m/128};
 function netText(){if(MP.role==='guest')return 'Ping to host: '+(MP.ping|0)+' ms.';const g=Object.values(REM).filter(r=>r.raw).map(r=>r.name+' '+(r.raw.pn|0)+' ms');return g.length?'Ping: '+g.join(', ')+'.':''}
 function netTick(dt){MP.nT=(MP.nT||0)-dt;if(MP.role==='guest'){MP.pT=(MP.pT||0)-dt;if(MP.pT<=0&&MP.joined&&!MP.rc){MP.pT=2;mpSend({t:'pg',c:performance.now()})}if(MP.joined&&!MP.rc&&!MP.local&&performance.now()-MP.lastSnap>10000)mpLost()}
@@ -1460,7 +1469,24 @@ const ENDS={1:{t:'Rescued, alone',x:'The ship takes you aboard. The crew wraps a
 const endT=q=>ENDS[cl(q.surv||1,1,4)];
 function rescueLines(n){RLINES[2][1]=n<=1?'Dawn breaks over the water. A ship comes. You are the only one left on the boat.':n===2?'Dawn breaks over the water. A ship comes for the two of you.':n===3?'Dawn breaks over the water. A ship comes for the three of you.':'Dawn breaks over the water. A ship comes for all of you.'}
 function endVoice(){const q=saves[PL.cur],k=cl(q.surv||1,1,4);if(BUF['ending_'+k])say(ENDS[k].x,14,'ending_'+k)}
-const VERSION='Version 0.17.0, story';let SIM=170,LCULL=140,FARUW=0,lcT=0;
+/* ---------- Co-op: relay servers, reviving, look-here tags ---------- */
+const PCFG=()=>{let t=null;try{t=JSON.parse(localStorage.getItem('btd_turn')||'null')}catch(e){}const q=new URLSearchParams(location.search);if(q.get('turn')){t={urls:q.get('turn').split(','),username:q.get('tu')||'',credential:q.get('tp')||''};try{localStorage.setItem('btd_turn',JSON.stringify(t))}catch(e){}}
+ return{config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:openrelay.metered.ca:80'},t||{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]}}};
+const RV={t:0,id:null},TAGS=[];
+function goDown(msg){PL.down=45;PL.dmsg=msg;PL.hp=1;PL.vx=PL.vy=PL.vz=0;toast('You are down! A teammate can revive you if they stay close.');snd('hurt')}
+function reviveMe(){if(PL.down>0){PL.down=0;PL.hp=40;toast('You are back on your feet.')}}
+function reviveTick(dt){if(PL.down>0){PL.down-=dt;PL.vx=PL.vy=PL.vz=0;PL.o2=Math.max(PL.o2,30);PL.hp=Math.max(PL.hp,1);
+  if(nPlayers()>1&&Object.values(REM).every(r=>!r.raw||r.raw.dn))PL.down=Math.min(PL.down,3);
+  if(PL.down<=0){PL.down=0;PL.dd=1;die(PL.dmsg||'You were lost at sea.');PL.dd=0}return}
+ if(scr!=='play'||!MP.role){RV.t=0;return}let tg=null;for(const id in REM){const r=REM[id].raw;if(r&&r.dn&&Math.hypot(r.x-PL.x,r.z-PL.z)<2.8&&Math.abs(r.y-PL.y)<3){tg=id;break}}
+ if(!tg){RV.t=0;RV.id=null;return}if(RV.id!==tg){RV.id=tg;RV.t=0}RV.t+=dt;toast('Reviving '+REM[tg].name+'... '+Math.min(100,Math.round(RV.t/4*100))+'%');
+ if(RV.t>=4){RV.t=0;RV.id=null;if(MP.role==='host')mpSend({t:'revive'},tg);else mpEv(tg==='host'?{e:'rev'}:{e:'rev2',id:tg})}}
+function spawnTag(x,y,z,n){const g=new THREE.Group(),lb=mkLabel(n+' \u2193',false);lb.position.y=1.4;lb.scale.set(1.6,.4,1);g.add(lb);const dm=new THREE.Mesh(new THREE.OctahedronGeometry(.3),new THREE.MeshBasicMaterial({color:0xffd24a,fog:false,depthTest:false}));dm.renderOrder=40;g.add(dm);g.position.set(x,y+.5,z);WG.add(g);TAGS.push({g,t:25,dm});if(TAGS.length>4)WG.remove(TAGS.shift().g);snd('click',null)}
+function tagHere(){if(scr!=='play')return;if(!MP.role){toast('Tags are for multiplayer.');return}const e=eye();let x=e.x,y=e.y,z=e.z;for(let i=0;i<60;i++){x+=fw.x;y+=fw.y;z+=fw.z;if(y<Math.max(sbH(x,z),islandH(x,z)))break;if(PL.depth<1.5&&y<surfV(x,z))break}
+ spawnTag(x,y,z,myName());mpEv({e:'tag',x,y,z,n:myName()})}
+function tagTick(dt){for(let i=TAGS.length-1;i>=0;i--){const t=TAGS[i];t.t-=dt;t.dm.rotation.y+=dt*2;if(t.t<=0){WG.remove(t.g);TAGS.splice(i,1)}}}
+$('btag').onclick=tagHere;
+const VERSION='Version 0.18.0, sturdier co-op';let SIM=170,LCULL=140,FARUW=0,lcT=0;
 let OC=1200/260;
 function surfV(x,z){const x0=Math.floor(x/OC)*OC,z0=Math.floor(z/OC)*OC,fx=(x-x0)/OC,fz=(z-z0)/OC,a=wh(x0,z0,T),b=wh(x0+OC,z0,T),d=wh(x0,z0+OC,T),e=wh(x0+OC,z0+OC,T);return fx+fz<=1?a+(b-a)*fx+(d-a)*fz:e+(b-e)*(1-fz)+(d-e)*(1-fx)}
 function lootCull(dt){lcT-=dt;if(lcT>0)return;lcT=.4;const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z;loot.forEach(l=>{if(l.taken)return;const p=l.m.position;l.m.visible=Math.abs(p.x-hx)<LCULL&&Math.abs(p.z-hz)<LCULL})}
