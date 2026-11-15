@@ -95,16 +95,16 @@ const H=`uniform float uA;float h(vec2 p,float t){return uA*(sin(p.x*.35+t*.9)*.
 const U={t:{value:0},uN:NU,uD:DK,sd:SD,md:MD,uA:WA,cam:{value:new THREE.Vector3()}};
 const g=new THREE.PlaneGeometry(1200,1200,260,260);g.rotateX(-Math.PI/2);
 const ocean=new THREE.Mesh(g,new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:U,
- vertexShader:`uniform float t;varying vec3 vW;varying vec3 vN;${H}
- void main(){vec4 w=modelMatrix*vec4(position,1.);vec2 p=w.xz;float e=.15;w.y+=h(p,t);
+ vertexShader:`uniform float t;varying vec3 vW;varying vec3 vN;varying float vH;${H}
+ void main(){vec4 w=modelMatrix*vec4(position,1.);vec2 p=w.xz;float e=.15;float hh=h(p,t);vH=hh;w.y+=hh;
  vN=normalize(vec3(h(p-vec2(e,0.),t)-h(p+vec2(e,0.),t),2.*e,h(p-vec2(0.,e),t)-h(p+vec2(0.,e),t)));vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
- fragmentShader:`uniform float t,uN,uD;uniform vec3 cam,sd,md;varying vec3 vW;varying vec3 vN;
+ fragmentShader:`uniform float t,uN,uD,uA;uniform vec3 cam,sd,md;varying vec3 vW;varying vec3 vN;varying float vH;
  void main(){vec3 hr=mix(mix(${HOR},vec3(.015,.03,.07),uN),vec3(.62,.8,.9),uD);vec3 v=normalize(cam-vW);vec3 n=normalize(vN+vec3(sin(vW.x*3.+t*2.),0.,cos(vW.z*3.4-t*1.7))*.04);
  float nv=max(dot(n,v),0.),f=pow(1.-nv,4.);vec3 r=reflect(-v,n);
  vec3 skyc=mix(hr,mix(mix(vec3(.04,.08,.2),vec3(.004,.008,.025),uN),vec3(.12,.38,.78),uD),pow(clamp(r.y,0.,1.),.4));
  vec3 c=mix(mix(vec3(.01,.05,.09),vec3(.03,.2,.27),nv*.5)*(1.-.75*uN),skyc,f*.9+.04);
  c+=vec3(1.,.65,.4)*pow(max(dot(r,sd),0.),220.)*1.6*(1.-uN)+vec3(.7,.8,1.)*pow(max(dot(r,md),0.),260.)*1.2*uN;
- c=mix(c,hr*.75,smoothstep(80.,520.,length(vW.xz-cam.xz)));gl_FragColor=vec4(c,1.);}`}));
+ float fo=smoothstep(.3*uA,.6*uA,vH)*smoothstep(.15,.7,.5+.5*sin(vW.x*2.3+t*1.1)*sin(vW.z*2.9-t*.9)+.25*sin((vW.x+vW.z)*7.));c=mix(c,vec3(.9,.95,1.)*(1.-.55*uN),fo*.75);c=mix(c,hr*.75,smoothstep(80.,520.,length(vW.xz-cam.xz)));gl_FragColor=vec4(c,1.);}`}));
 S.add(ocean);
 var lk=1;function size(){R.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.fov=innerWidth/innerHeight<.8?75:60;cam.updateProjectionMatrix();lk=Math.min(1,Math.max(.4,2*Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect)*180/Math.PI/66))}
 addEventListener('resize',size);size();
@@ -185,7 +185,7 @@ function ui(){const d=scrDesc();
  document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===(scr==='main'?'menu':scr)));
  if(scr==='main'){html(d,$('mbtns'));$('mbtns').insertAdjacentHTML('beforeend','<span class="note">'+VERSION+'</span>')}else if($(scr))html(d,$(scr));
  if(mod){html(mod,$('box'));$('modal').classList.add('on');const b=$('box').querySelector('button');b&&b.focus()}else $('modal').classList.remove('on');
- const gm=inGame();lg.visible=scr==='main';if(saves[PL.cur])refreshBoat();WG.visible=gm;if(!gm){try{LPstop();disEnd(true);$('nav').textContent=''}catch(e){}NU.value=0;DK.value=0;WA.value=1;SD.value.set(-.35,.1,-1).normalize();MD.value.set(.45,.4,-1).normalize()}
+ const gm=inGame();lg.visible=scr==='main';if(saves[PL.cur])refreshBoat();WG.visible=gm;if(!gm){try{LPstop();disEnd(true);$('nav').textContent='';musicOff()}catch(e){}NU.value=0;DK.value=0;WA.value=1;SD.value.set(-.35,.1,-1).normalize();MD.value.set(.45,.4,-1).normalize()}
  hemi.color.setHex(gm?0x6f8fd0:0xffd9c0);hemi.groundColor.setHex(gm?0x040c18:0x0b2a3a);hemi.intensity=gm?.5:.9;fill.visible=rim.visible=!gm;moon.visible=gm;
  if(!gm){S.fog=null;uw.visible=false;headL.visible=false;ocean.visible=true;FARUW=0;if(cam.far!==1500){cam.far=1500;cam.updateProjectionMatrix()}uw.scale.setScalar(1)}
  $('hud').classList.toggle('on',(scr==='play'||scr==='cut'||scr==='rescue')&&!vr);$('hud').classList.toggle('cutm',scr==='cut'||scr==='rescue');$('hud').classList.toggle('cre',PL.mode==='creative');hudPs.forEach(m=>{if(m)m.visible=scr==='play'&&!!m.userData.left});pm.visible=vr&&scr!=='play'&&scr!=='cut'&&scr!=='rescue';AU.gm=gm;dirty=true}
@@ -361,17 +361,18 @@ function inputs(){let mx=(keys.KeyD?1:0)-(keys.KeyA?1:0),mz=(keys.KeyW?1:0)-(key
 function tick(dt){const in3=inputs(),mx=in3[0],mz=in3[1],su=in3[2],cr=PL.mode==='creative',deck=boat.position.y+.35,surf=surfV(PL.x,PL.z),
  eye=vr?Math.max(1,v3.y-PL.y):1.7,headY=PL.y+eye,under=headY<surf-.05;
  if(vr){R.xr.getCamera(cam).matrixWorld.decompose(tp,tq,ts);fw.set(0,0,-1).applyQuaternion(tq)}else fw.set(-Math.sin(PL.yaw)*Math.cos(PL.pitch),Math.sin(PL.pitch),-Math.cos(PL.yaw)*Math.cos(PL.pitch));
- const fl=Math.hypot(fw.x,fw.z)||1,fx=fw.x/fl,fz=fw.z/fl,bl0=bL(PL.x,PL.z),onB=!cr&&PL.y>=deck-(PL.onBoat?1:.15)&&inDeck(bl0,PL.onBoat?.25:0),full=under||cr,lh=islandH(PL.x,PL.z),onL=!onB&&!cr&&lh>surf-1.6&&PL.y<=lh+.8&&PL.y>=lh-1.7;
+ const ho=vr&&Math.hypot(tp.x-PL.x,tp.z-PL.z)<3?{x:tp.x-PL.x,z:tp.z-PL.z}:{x:0,z:0};
+ const fl=Math.hypot(fw.x,fw.z)||1,fx=fw.x/fl,fz=fw.z/fl,bl0=bL(PL.x+ho.x,PL.z+ho.z),onB=!cr&&PL.y>=deck-(PL.onBoat?1:.15)&&inDeck(bl0,PL.onBoat?.25:0),full=under||cr,lh=islandH(PL.x,PL.z),onL=!onB&&!cr&&lh>surf-1.6&&PL.y<=lh+.8&&PL.y>=lh-1.7;
  if(PL.noBoard>0)PL.noBoard-=dt;if(PL.helm&&!onB){PL.helm=0;mpHelm(0)}PL.onBoat=onB;PL.onL=onL;const hm=PL.helm;if(hm){BT.thr=mz;BT.turn=mx}else{BT.thr=BT.turn=0}if(vr&&under&&!PL.hint){PL.hint=1;toast('Hold a grip button and pull your arm through the water to swim.')}
  const dx=hm?0:(full?fw.x:fx)*mz-fz*mx,dz=hm?0:(full?fw.z:fz)*mz+fx*mx;
- if(onB||cr||onL){const spd=cr?5:onL?2.1:1.8;PL.x+=dx*spd*dt;PL.z+=dz*spd*dt;PL.vx=PL.vy=PL.vz=0;if(cr)PL.y+=((full?fw.y*mz*spd:0)+su*2)*dt;else if(onB){if(!inDeck(bL(PL.x,PL.z),.1))PL.noBoard=2.5}if(onL){const g2=islandH(PL.x,PL.z);if(g2>-1e8)PL.y+=(g2-PL.y)*Math.min(1,dt*14)}}
+ if(onB||cr||onL){const spd=cr?5:onL?2.1:1.8;PL.x+=dx*spd*dt;PL.z+=dz*spd*dt;PL.vx=PL.vy=PL.vz=0;if(cr)PL.y+=((full?fw.y*mz*spd:0)+su*2)*dt;else if(onB){if(!inDeck(bL(PL.x+ho.x,PL.z+ho.z),.1))PL.noBoard=2.5}if(onL){const g2=islandH(PL.x,PL.z);if(g2>-1e8)PL.y+=(g2-PL.y)*Math.min(1,dt*14)}}
  else{const th=(under?2.4:3.2)*finMul()*(PL.slow>0?.55:1),dy=(full?fw.y*mz:0)+su*.6;PL.vx+=dx*th*dt;PL.vy+=dy*th*dt;PL.vz+=dz*th*dt;strokes(dt);
   const k=Math.exp(-(under?1.3:2.2)*dt);PL.vx*=k;PL.vy*=k;PL.vz*=k;const sp=Math.hypot(PL.vx,PL.vy,PL.vz);if(sp>4){const q=4/sp;PL.vx*=q;PL.vy*=q;PL.vz*=q}
   PL.x+=PL.vx*dt;PL.y+=PL.vy*dt;PL.z+=PL.vz*dt}
  const r=Math.hypot(PL.x,PL.z);if(r>640){PL.x*=640/r;PL.z*=640/r}
- if(!onB&&!cr&&!onL){const q2=bL(PL.x,PL.z);if(PL.noBoard<=0&&Math.abs(q2.x)<1.9&&Math.abs(q2.z)<3.4&&headY>surf-1.3&&PL.y<deck+.6){const w=bW(cl(q2.x,-.5,.5),cl(q2.z,-1.8,1.8));PL.x=w.x;PL.z=w.z;PL.y=deck;PL.vx=PL.vy=PL.vz=0}
+ if(!onB&&!cr&&!onL){const q2=bL(PL.x+ho.x,PL.z+ho.z);if(PL.noBoard<=0&&Math.abs(q2.x)<1.9&&Math.abs(q2.z)<3.4&&headY>surf-1.3&&PL.y<deck+.6){const w=bW(cl(q2.x,-.5,.5),cl(q2.z,-1.8,1.8));PL.x=w.x-ho.x;PL.z=w.z-ho.z;PL.y=deck;PL.vx=PL.vy=PL.vz=0}
   else{const top=surf-eye+.5;if(PL.y>top){PL.y=Math.max(top,PL.y-5*dt);if(PL.vy>0)PL.vy=0}}}
- else if(onB){if(inDeck(bL(PL.x,PL.z),.25))PL.y=deck}
+ else if(onB){if(inDeck(bL(PL.x+ho.x,PL.z+ho.z),.25))PL.y=deck}
  {if(!onL)islandPush(eye);collide(eye);const f0=sbH(PL.x,PL.z)+.2;if(PL.y<f0){PL.y=f0;if(PL.vy<0)PL.vy=0}}PL.depth=surf-(PL.y+eye);
  const s=saves[PL.cur];PL.t+=dt;if(PL.depth>s.deepest)s.deepest=Math.round(PL.depth);if((PL.sv+=dt)>10){PL.sv=0;saveNow()}
  const rt=ratingM(),over=PL.depth-rt;if(!cr&&over>-4&&!PL.pw){PL.pw=1;toast('Pressure warning: your gear is rated for '+rt+' m.');snd('ping',null)}if(over<-8)PL.pw=0;
@@ -387,7 +388,7 @@ function world(dt){if(scr==='play'){tick(dt);listen(fw)}else if(scr==='cut')cutT
  lant.intensity=1.3+Math.sin(T*9)*.12+Math.sin(T*23)*.08;
  floats.forEach(f=>{f.m.position.y=wh(f.m.position.x,f.m.position.z,T)+.15;f.m.rotation.y+=dt*.4});
  const bq=bL(PL.x,PL.z),op=Math.hypot(bq.x,bq.z-2.2)<2.2&&PL.y>boat.position.y?1.2:0;lids.forEach(l=>l.rotation.x+=(op-l.rotation.x)*Math.min(1,dt*5));
- npcs.forEach((n,i)=>n.rotation.z=Math.sin(T*.8+i)*.04);npcTick(dt);atTick(dt);todTick(dt);dzSim(dt);dzFx(dt);boatHint();flareTick(dt);ambTick(dt);dirTick(dt);rodTick(dt);mapTick(dt);zoneTick(dt);storyTick(dt);reviveTick(dt);tagTick(dt);padTick(dt);tutTick(dt);kelp.forEach(k=>{if(Math.abs(k.position.x-PL.x)<110&&Math.abs(k.position.z-PL.z)<110)k.rotation.z=Math.sin(T*.7+k.userData.p)*.1});
+ npcs.forEach((n,i)=>n.rotation.z=Math.sin(T*.8+i)*.04);npcTick(dt);atTick(dt);todTick(dt);dzSim(dt);dzFx(dt);boatHint();flareTick(dt);ambTick(dt);dirTick(dt);rodTick(dt);mapTick(dt);zoneTick(dt);storyTick(dt);reviveTick(dt);tagTick(dt);padTick(dt);tutTick(dt);fxTick(dt);musicTick(dt);kelp.forEach(k=>{if(Math.abs(k.position.x-PL.x)<110&&Math.abs(k.position.z-PL.z)<110)k.rotation.z=Math.sin(T*.7+k.userData.p)*.1});
  const surf=surfV(v3.x,v3.z),und=v3.y<surf+.08;AU.und=und;uw.visible=und;ocean.visible=!und;S.fog=und?fogU:null;headL.visible=und;if(und&&v3.y<surf-.5)FARUW=1;else if(!und)FARUW=0;{const wf=FARUW?150:1500;if(cam.far!==wf){cam.far=wf;cam.updateProjectionMatrix()}}uw.scale.setScalar(FARUW?.4:1);
  if(und){const d=Math.max(0,surf-v3.y);lampTick(dt,d);uw.position.copy(v3);fogU.color.copy(c0).lerp(c1,Math.min(1,d/40));uw.material.color.copy(fogU.color);fogU.density=(.065+d*.0016)*CON.fog;headL.position.copy(v3)}
  if(PL.tt>0)PL.tt-=dt;if((PL.hud-=dt)<=0){PL.hud=.2;hudUp()}}
@@ -548,7 +549,7 @@ function snd(k,p){if(!AC)return;const bf=pickBuf(k);if(bf){const s=AC.createBuff
  else if(k==='static')noise(o,t,1.2,'bandpass',2000,1400,.9,.3,.03);else if(k==='zap')noise(o,t,.4,'highpass',2500,7000,.9,.5,.004);else if(k==='flare')noise(o,t,1,'bandpass',2200,900,.7,.3,.05);else if(k==='splash2')noise(o,t,1.1,'highpass',1300,500,.7,.38,.03)}
 function listen(f){if(!AC)return;const L=AC.listener;if(L.positionX){L.positionX.value=v3.x;L.positionY.value=v3.y;L.positionZ.value=v3.z;L.forwardX.value=f.x;L.forwardY.value=f.y;L.forwardZ.value=f.z;L.upX.value=0;L.upY.value=1;L.upZ.value=0}else{L.setPosition(v3.x,v3.y,v3.z);L.setOrientation(f.x,f.y,f.z,0,1,0)}}
 /* ---------- Audio files: your own recordings replace the synthesized sounds ---------- */
-const BUF={},VOICE={end:0},SFXN=['scrape','boom','alarm','creak','creak2','creak3','scream','splash','rumble','roar','ping','bubbles','breath','gasp','heart','call','step_wood','step_sand','step_wade','swish','oar','woodcreak','pickup','craft','eat','drink','hurt','click','splash2','ambient','ambient_underwater','zap','flare','thunder','thunder_close','lightning','rain','wind','tornado','whirlpool','static'],VON=Array.from({length:11},(_,i)=>'voice_'+String(i+1).padStart(2,'0')).concat(['act_1','act_2','act_3','act_4','radio_01','radio_02','radio_03','radio_04','radio_05','radio_06','ending_1','ending_2','ending_3','ending_4','note_5','note_6','note_7']);
+const BUF={},VOICE={end:0},SFXN=['scrape','boom','alarm','creak','creak2','creak3','scream','splash','rumble','roar','ping','bubbles','breath','gasp','heart','call','step_wood','step_sand','step_wade','swish','oar','woodcreak','pickup','craft','eat','drink','hurt','click','splash2','ambient','ambient_underwater','zap','flare','thunder','thunder_close','lightning','rain','wind','tornado','whirlpool','static','music_calm','music_tense'],VON=Array.from({length:11},(_,i)=>'voice_'+String(i+1).padStart(2,'0')).concat(['act_1','act_2','act_3','act_4','radio_01','radio_02','radio_03','radio_04','radio_05','radio_06','ending_1','ending_2','ending_3','ending_4','note_5','note_6','note_7']);
 async function loadOne(n){for(const e of ['mp3','ogg','wav']){try{const r=await fetch('audio/'+n+'.'+e);if(!r.ok)continue;BUF[n]=await AC.decodeAudioData(await r.arrayBuffer());if(n==='ambient')useAmbient();if(n==='ambient_underwater')useAmbientU();return}catch(x){}}}
 function loadAudio(){SFXN.concat(VON).forEach(loadOne)}
 function useAmbient(){try{ambSrc&&ambSrc.stop()}catch(e){}const s=AC.createBufferSource();s.buffer=BUF.ambient;s.loop=true;s.connect(amb);s.start();ambSrc=s}
@@ -1359,7 +1360,7 @@ function mkAmb(type,x,y,z,tmp){const g=new THREE.Group(),dk=mt(type==='eel'?0x22
   const st=new THREE.Mesh(new THREE.CylinderGeometry(.03,.05,2,5),dk);st.position.set(0,1.5,-1.4);st.rotation.x=.9;g.add(st);
   a.lure=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),new THREE.MeshBasicMaterial({color:0xaffff0,fog:false}));a.lure.position.set(0,2.4,-2.3);a.glw=glow(0x7fffe0,2.6);a.lure.add(a.glw);g.add(a.lure)}
  else for(let i=0;i<10;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.28-i*.018,8,6),dk);g.add(m);a.seg.push(m)}
- g.position.copy(a.home);WG.add(g);AMB.push(a);return a}
+ {const mk=type==='angler'?'anglerfish':'eel';if(MODELS[mk]){g.children.forEach(c=>c.visible=false);const o=inst(mk);g.add(o.g);a.mdl=o;setRole(o,'swim')}}g.position.copy(a.home);WG.add(g);AMB.push(a);return a}
 function resetAmb(){AMB.splice(0).forEach(a=>WG.remove(a.g));LT.fl.splice(0).forEach(f=>WG.remove(f.m));amSeed=777;DIR.q=70;DIR.b=0;
  for(let i=0;i<5;i++){const x=TRP.x+(amR()-.5)*200,z=TRP.z+(amR()-.5)*200;mkAmb('angler',x,Math.min(Math.max(sbH(x,z)+7,-(45+amR()*55)),-40),z)}
  [[-5,-24,16],[-5,-24,16],[FRP.x,FRP.z,30],[FRP.x,FRP.z,30]].forEach(c=>{const x=c[0]+(amR()-.5)*c[2],z=c[1]+(amR()-.5)*c[2];mkAmb('eel',x,sbH(x,z)+2.5,z)})}
@@ -1369,12 +1370,12 @@ function ambTick(dt){if(scr!=='play')return;const hid=cr2(),P=eye(),swim=PL.dept
   a.cool-=dt;a.flee-=dt;a.t-=dt;const an=a.type==='angler',quiet=!LT.lit&&(PL.noise||0)<.2,sense=an?(quiet?7:30):(quiet?4:7);
   if(a.st==='idle'){p.y+=(a.home.y-p.y)*dt*.5+Math.sin(T*.8+i)*.004;
    if(swim&&a.cool<=0&&a.flee<=0&&d<sense&&d>(an?8:5)&&an&&!quiet){a.dir.lerp(P.clone().sub(p).normalize(),Math.min(1,dt*2)).normalize();p.addScaledVector(a.dir,2.2*dt);a.home.y=p.y}
-   if(swim&&a.cool<=0&&a.flee<=0&&d<sense&&d<=(an?8:5)){a.st='lunge';a.t=an?1.4:1}
+   if(swim&&a.cool<=0&&a.flee<=0&&d<sense&&d<=(an?8:5)){a.st='lunge';a.t=an?1.4:1;if(a.mdl)playOnce(a.mdl,'attack')}
    a.g.lookAt(p.clone().add(p.clone().sub(P)))}
   else if(a.st==='lunge'){a.dir.lerp(P.clone().sub(p).normalize(),Math.min(1,dt*4)).normalize();p.addScaledVector(a.dir,(an?13:9)*dt);if(a.jaw)a.jaw.rotation.x=-.5;
    if(d<2.4){hurt((an?28:14)*diffMul(),an?'An anglerfish swallowed your light, and then you.':'An eel struck from the dark.');if(!an&&PL.mode!=='creative')PL.poison=Math.max(PL.poison||0,6);a.st='flee';a.flee=a.cool=8}else if(a.t<=0){a.st='flee';a.flee=6;a.cool=6}}
   else{const to=a.home.clone().sub(p),l=to.length();if(a.flee>0)a.dir.lerp(p.clone().sub(P).normalize(),Math.min(1,dt*3));else a.dir.lerp(to.normalize(),Math.min(1,dt*2));a.dir.normalize();p.addScaledVector(a.dir,5*dt);if(a.jaw)a.jaw.rotation.x=0;if(a.flee<=0&&l<2)a.st='idle'}
-  p.y=Math.max(p.y,sbH(p.x,p.z)+.8);if(a.st!=='idle')a.g.lookAt(p.clone().sub(a.dir));
+  p.y=Math.max(p.y,sbH(p.x,p.z)+.8);if(a.st!=='idle')a.g.lookAt(p.clone().sub(a.dir));if(a.mdl)setRole(a.mdl,a.st==='lunge'?(a.mdl.act.fast?'fast':'swim'):'swim',a.st==='lunge'&&!a.mdl.act.fast?1.5:1);
   if(a.glw){const al=d<sense+8&&!quiet;a.glw.material.opacity=al?.7+.3*Math.sin(T*12):.8;a.glw.scale.setScalar(al?3.2:2.6)}
   a.seg.forEach((m,k)=>m.position.set(Math.sin(T*6-k*.8)*.25,0,k*.42))}}
 function dirTick(dt){if(cr2()||scr!=='play')return;LT.flick=DIR.b>0||STY.flk>0;if(PL.depth<22){DIR.q=Math.max(DIR.q,45);DIR.b=0;return}
@@ -1530,7 +1531,32 @@ function tutTick(dt){if(scr!=='play'||PL.mode==='creative'||ST.hints===false)ret
  if(PL.o2<55&&PL.depth>1)hint('air','Your oxygen is running low. Swim up to the surface.');
  if(invOf().some(Boolean))hint('bag','Items are picked up by swimming into them. '+bag+' opens your bag and the storage boxes.');
  if((s.got&&s.got.scrap>=3)||haveN('scrap')>=3)hint('craft','Stand next to the workbench on the boat and press '+(kb?kname(kcur('KeyE')):'Interact')+' to craft tools.')}
-const VERSION='Version 0.20.0, comfort';let SIM=170,LCULL=140,FARUW=0,lcT=0;
+/* ---------- Phone: a visible movement joystick ---------- */
+{const st=document.createElement('style');st.textContent='#joyb{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(228,246,251,.5);background:rgba(228,246,251,.08);z-index:11;pointer-events:none;display:none}#joyk{position:absolute;left:32px;top:32px;width:56px;height:56px;border-radius:50%;background:rgba(228,246,251,.35);border:2px solid rgba(228,246,251,.7)}';document.head.append(st);
+ const b=document.createElement('div');b.id='joyb';b.innerHTML='<div id="joyk"></div>';document.body.append(b);const k=b.firstChild;
+ setInterval(()=>{const on=coarse&&(scr==='play'||scr==='cut');b.style.display=on?'block':'none';if(!on)return;
+  if(tk.m!=null){b.style.left=tk.sx+'px';b.style.top=tk.sy+'px';b.style.opacity=.9;const l=Math.hypot(tk.mx,tk.my)||1,f=Math.min(1,l)*40;k.style.transform='translate('+(tk.mx/l*f)+'px,'+(tk.my/l*f)+'px)'}
+  else{b.style.left='96px';b.style.top=(innerHeight-110)+'px';b.style.opacity=.4;k.style.transform='none'}},33)}
+/* ---------- Look and feel: floating particles, god rays, music that follows the danger ---------- */
+const SNOW=(()=>{const n=500,a=new Float32Array(n*3);for(let i=0;i<n*3;i++)a[i]=(Math.random()-.5)*24;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));const p=new THREE.Points(g,new THREE.PointsMaterial({color:0xc0d8e0,size:.07,transparent:true,opacity:.55,depthWrite:false}));p.frustumCulled=false;p.visible=false;WG.add(p);return p})();
+const RAYS=Array.from({length:12},(_,i)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.9+(i%3)*.5,46,.9+(i%3)*.5),new THREE.MeshBasicMaterial({color:0xcdebdc,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));m.visible=false;m.userData={ox:((i*37)%24)-12,oz:((i*53)%24)-12,ph:i*1.3};WG.add(m);return m}),RAYD=new THREE.Vector3(),YU=new THREE.Vector3(0,1,0);let SNP=null;
+function fxTick(dt){cam.getWorldPosition(wp);const sf=surfV(wp.x,wp.z),dep=sf-wp.y,und=dep>.4;SNOW.visible=und;
+ if(und){SNOW.position.copy(wp);const a=SNOW.geometry.attributes.position.array,n=a.length/3,dx=SNP?wp.x-SNP.x:0,dy=SNP?wp.y-SNP.y:0,dz=SNP?wp.z-SNP.z:0,w=v=>((v+12)%24+24)%24-12;
+  for(let i=0;i<n;i++){a[i*3]=w(a[i*3]-dx+Math.sin(T*.3+i)*.01);a[i*3+1]=w(a[i*3+1]-dy-.12*dt);a[i*3+2]=w(a[i*3+2]-dz)}SNOW.geometry.attributes.position.needsUpdate=true;SNOW.geometry.setDrawRange(0,Math.floor(n*cl(dep/5,.15,1)))}
+ SNP=SNP||new THREE.Vector3();SNP.copy(wp);
+ const sun=SD.value,vis=und&&dep<38?DK.value*cl(sun.y*3,0,1)*cl(1-dep/38,0,1)*(1-DZ.dark):0,d=RAYD.set(-sun.x*.45,-1,-sun.z*.45).normalize();
+ RAYS.forEach(r=>{r.visible=vis>.01;if(!r.visible)return;const u=r.userData,bx=u.ox+Math.floor((wp.x-u.ox+12)/24)*24,bz=u.oz+Math.floor((wp.z-u.oz+12)/24)*24,y=surfV(bx,bz);r.position.set(bx+d.x*23,y+d.y*23,bz+d.z*23);r.quaternion.setFromUnitVectors(YU,d);r.material.opacity=.07*vis*(.6+.4*Math.sin(T*.8+u.ph))})}
+function dangerLevel(){let t=0;if(LV.on&&LV.mode===1)t=.9;PRED.forEach(p=>{if(p.g.visible&&p.mode===1)t=Math.max(t,.7)});AMB.forEach(a=>{if(a.g.visible&&a.st!=='idle'&&a.st!=='flee')t=Math.max(t,.8)});if(DIR.b>0)t=Math.max(t,.5);if(DZ.n)t=Math.max(t,.25+.18*DZ.s*DZ.k);if(PL.depth>45)t=Math.max(t,.35);if(PL.hp<35)t=Math.max(t,.5);return t}
+const MU={on:false,lv:0,bus:null,g:null,cg:null,tg:null};
+function musicInit(){if(!AC||!AMBG)return false;if(MU.on&&MU.bus===AMBG)return true;MU.on=true;MU.bus=AMBG;const mg=AC.createGain();mg.gain.value=0;mg.connect(AMBG);MU.g=mg;MU.cg=AC.createGain();MU.tg=AC.createGain();MU.cg.gain.value=0;MU.tg.gain.value=0;MU.cg.connect(mg);MU.tg.connect(mg);
+ const osc=(f,v,dst,ty)=>{const o=AC.createOscillator();o.type=ty||'sine';o.frequency.value=f;const g=AC.createGain();g.gain.value=v;o.connect(g);g.connect(dst);o.start();return o};
+ if(BUF.music_calm&&BUF.music_tense){[['music_calm',MU.cg],['music_tense',MU.tg]].forEach(a=>{const s=AC.createBufferSource();s.buffer=BUF[a[0]];s.loop=true;s.connect(a[1]);s.start()})}
+ else{[[55,.05],[82.4,.035],[110.3,.03],[164.9,.012]].forEach(a=>osc(a[0],a[1],MU.cg));const sw=AC.createOscillator(),sg=AC.createGain();sw.frequency.value=.06;sg.gain.value=.12;sw.connect(sg);sg.connect(MU.cg.gain);sw.start();
+  [[233.1,.03,'sine'],[246.9,.03,'sine'],[466.2,.01,'triangle']].forEach(a=>osc(a[0],a[1],MU.tg,a[2]));const sub=AC.createOscillator(),sb=AC.createGain(),pl=AC.createOscillator(),pg=AC.createGain();sub.frequency.value=41.2;sb.gain.value=.07;sub.connect(sb);sb.connect(MU.tg);sub.start();pl.frequency.value=1.15;pg.gain.value=.07;pl.connect(pg);pg.connect(sb.gain);pl.start()}
+ return true}
+function musicTick(dt){if(!musicInit())return;const tg=dangerLevel();MU.lv+=(tg-MU.lv)*Math.min(1,dt*(tg>MU.lv?.8:.25));MU.g.gain.value+=(1-MU.g.gain.value)*Math.min(1,dt*.5);MU.cg.gain.value=.55*(1-MU.lv*.7)*(PL.depth>.5?1:.8);MU.tg.gain.value=MU.lv*.9}
+function musicOff(){MU.lv=0;if(MU.g)MU.g.gain.value=0}
+const VERSION='Version 0.21.0, look and feel';let SIM=170,LCULL=140,FARUW=0,lcT=0;
 let OC=1200/260;
 function surfV(x,z){const x0=Math.floor(x/OC)*OC,z0=Math.floor(z/OC)*OC,fx=(x-x0)/OC,fz=(z-z0)/OC,a=wh(x0,z0,T),b=wh(x0+OC,z0,T),d=wh(x0,z0+OC,T),e=wh(x0+OC,z0+OC,T);return fx+fz<=1?a+(b-a)*fx+(d-a)*fz:e+(b-e)*(1-fz)+(d-e)*(1-fx)}
 function lootCull(dt){lcT-=dt;if(lcT>0)return;lcT=.4;const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z;loot.forEach(l=>{if(l.taken)return;const p=l.m.position;l.m.visible=Math.abs(p.x-hx)<LCULL&&Math.abs(p.z-hz)<LCULL})}
@@ -1578,7 +1604,7 @@ function comfort(dt){const sp=scr==='play'?Math.hypot(PL.vx,PL.vy,PL.vz)+(PL.onB
 applyQuality();
 
 /* ---------- Custom models: GLB files in the models folder replace the built-in shapes ---------- */
-let MCFGERR='';const MODELS={},MCFG={},MIX=[],MFIT={leviathan:['z',30,PI,'center'],shark:['z',3.4,PI,'center'],jellyfish:['x',1.5,0,'center'],fish:['z',.5,0,'center'],lifeboat:['z',6,PI,'ground'],friend:['y',1.75,0,'ground'],friend_sit:['y',1.3,0,'ground'],hand_left:['z',.3,PI,'center'],hand_right:['z',.3,PI,'center'],yacht:['z',18,PI,'ground'],freighter:['z',36,PI,'ground'],palm:['y',6,0,'ground']};
+let MCFGERR='';const MODELS={},MCFG={},MIX=[],MFIT={leviathan:['z',30,PI,'center'],shark:['z',3.4,PI,'center'],jellyfish:['x',1.5,0,'center'],fish:['z',.5,0,'center'],lifeboat:['z',6,PI,'ground'],friend:['y',1.75,0,'ground'],friend_sit:['y',1.3,0,'ground'],hand_left:['z',.3,PI,'center'],hand_right:['z',.3,PI,'center'],yacht:['z',18,PI,'ground'],freighter:['z',36,PI,'ground'],palm:['y',6,0,'ground'],anglerfish:['z',2.6,PI,'center'],eel:['z',4,PI,'center']};
 ['food','water','scrap','cable','battery','fuel','antenna','note','core','bones'].forEach(k=>{MFIT['item_'+k]=['max',.35,0,'center']});
 const MSLOTS=Object.keys(MFIT),ROLE={idle:/idle|rest|float|hover|sit/i,swim:/swim|move|walk|fly|glide|loop/i,fast:/fast|chase|run|sprint/i,attack:/attack|bite|chomp|snap|lunge/i,pulse:/pulse|jelly|bob/i,fist:/fist|grip|close|grab/i};
 /* a fitted copy of a loaded model: scaled to the size the slot needs, centred, turned to the game's front, with its animations ready */
