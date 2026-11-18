@@ -690,19 +690,19 @@ function leviReset(){LV.on=false;LV.mode=0;LV.warn=0;LV.calm=0;LV.cold=false;lev
 function leviSpawn(){LV.on=true;LV.mode=0;LV.warn=0;LV.calm=0;let n=0;do{deepPoint(levi.position)}while(Math.hypot(levi.position.x-PL.x,levi.position.z-PL.z)<140&&n++<20);deepPoint(LV.wp);LV.dir.copy(LV.wp).sub(levi.position).normalize();levi.visible=true}
 /* the leviathan swims a random path through deep water. Dive too deep, or come too near, and it hunts you. */
 function leviTick(dt){if(PL.mode==='creative'&&!CON.threats){if(LV.on)leviReset();return}if(!LV.on)leviSpawn();
- const P=allP();LV.cool=(LV.cool||0)-dt;LV.attr=0;let tp=LV.mode===1?P.find(q=>q.id===LV.tid):null;if(LV.mode===1&&!tp)LV.mode=0;
+ const P=allP(),hc=PL.mode==='hardcore';LV.cool=(LV.cool||0)-dt;LV.attr=0;let tp=LV.mode===1?P.find(q=>q.id===LV.tid):null;if(LV.mode===1&&!tp)LV.mode=0;
  const dec=decoys.reduce((b,x)=>!b||Math.hypot(x.x-levi.position.x,x.z-levi.position.z)<Math.hypot(b.x-levi.position.x,b.z-levi.position.z)?x:b,null);
  if(LV.mode===1&&dec&&Math.hypot(levi.position.x-dec.x,levi.position.z-dec.z)<Math.hypot(levi.position.x-tp.hx,levi.position.z-tp.hz)*.8){LV.mode=0;LV.warn=0}
  if(LV.mode===0){if(dec){LV.wp.set(dec.x,-40,dec.z);LV.attr=1}else{const bh=Math.hypot(levi.position.x-BT.x,levi.position.z-BT.z);if((BT.motor&&bh<260)||BEACON.on){LV.wp.set(BT.x,-42,BT.z);LV.attr=1}if((BT.motor||BEACON.on)&&bh<28&&LV.cool<=0)ram()}
-  let best=null;P.forEach(p=>{const bd=Math.hypot(levi.position.x-p.hx,levi.position.y-p.hy,levi.position.z-p.hz);LVW[p.id]=p.depth>50?(LVW[p.id]||0)+dt:Math.max(0,(LVW[p.id]||0)-dt);if(LVW[p.id]>3||(bd<50*(.75+.5*p.noise)&&p.depth>18)){if(!best||bd<best.bd)best={p,bd}}});
-  if(best){LV.mode=1;LV.calm=0;LV.tid=best.p.id;tp=best.p;if(tp.loc)toast('Something huge is turning toward you.');else mpSend({t:'toast',m:'Something huge is turning toward you.'},tp.id);snd('roar',levi.position)}}
- else if(tp.depth<32){LV.calm+=dt;if(LV.calm>4){LV.mode=0;LV.warn=0;deepPoint(LV.wp)}}else LV.calm=0;
- const T2=LV.mode===1?lvt.set(tp.hx,tp.hy,tp.hz):LV.wp;lmw.copy(T2).sub(levi.position);const dist=lmw.length();lmw.normalize();if(LV.mode===0&&dist<25&&!LV.attr)deepPoint(LV.wp);
- LV.dir.lerp(lmw,Math.min(1,dt*(LV.mode?.9:.35))).normalize();levi.position.addScaledVector(LV.dir,(LV.mode===1?7+Math.min(4,40/Math.max(dist,10)):4.5)*(PL.mode==='hardcore'?1.15:1)*dt);
+  let best=null;P.forEach(p=>{const bd=Math.hypot(levi.position.x-p.hx,levi.position.y-p.hy,levi.position.z-p.hz);LVW[p.id]=p.depth>(hc?55:70)?(LVW[p.id]||0)+dt:Math.max(0,(LVW[p.id]||0)-dt*2);if(LVW[p.id]>(hc?8:20)||(bd<(hc?40:26)*(.75+.5*p.noise)&&p.depth>(hc?32:42))){if(!best||bd<best.bd)best={p,bd}}});
+  if(best){LV.mode=1;LV.calm=0;LV.ht=0;LV.tid=best.p.id;tp=best.p;if(tp.loc)toast('Something huge is turning toward you.');else mpSend({t:'toast',m:'Something huge is turning toward you.'},tp.id);snd('roar',levi.position)}}
+ else if(tp.depth<(hc?32:44)){LV.calm+=dt;if(LV.calm>(hc?4:2.5)){LV.mode=0;LV.warn=0;deepPoint(LV.wp)}}else LV.calm=0;
+ if(LV.mode===1)LV.ht=(LV.ht||0)+dt;const T2=LV.mode===1?lvt.set(tp.hx,tp.hy,tp.hz):LV.wp;lmw.copy(T2).sub(levi.position);const dist=lmw.length();lmw.normalize();if(LV.mode===0&&dist<25&&!LV.attr)deepPoint(LV.wp);
+ LV.dir.lerp(lmw,Math.min(1,dt*(LV.mode?.9:.35))).normalize();levi.position.addScaledVector(LV.dir,(LV.mode===1?(hc?5.5:3.5)+Math.min(hc?4.5:4,(LV.ht||0)*(hc?.45:.3))+Math.min(3,40/Math.max(dist,10))*.5:4.5)*(hc?1.15:1)*dt);
  const g=sbH(levi.position.x,levi.position.z);levi.position.y=Math.max(Math.min(levi.position.y,-22),g+8);
  levi.lookAt(levi.position.clone().sub(LV.dir));levi.updateMatrixWorld(true);lmo.set(0,0,-14);levi.localToWorld(lmo);
  let md=1e9,vic=null;P.forEach(p=>{const m=Math.hypot(lmo.x-p.hx,lmo.y-p.hy,lmo.z-p.hz);if(m<md){md=m;vic=p}});const op=LV.mode===1&&md<30?Math.min(.9,(30-md)/20):0;lj1.rotation.x=-op*.5;lj2.rotation.x=op*.5;lureL.intensity=2.2+Math.sin(T*3)*.4;{const mm=levi.userData.mdl;if(mm){if(LV.mode===1&&md<14)playOnce(mm,'attack');setRole(mm,LV.mode===1?(mm.act.fast?'fast':'swim'):'swim',LV.mode===1&&!mm.act.fast?1.5:1)}}
- if(LV.mode===1&&md<6&&vic){LVW[vic.id]=0;leviReset();if(vic.loc)die('You were swallowed whole.');else mpSend({t:'die',by:'You were swallowed whole.'},vic.id)}}
+ if(LV.mode===1&&(LV.ht||0)>(hc?4:9)&&md<6&&vic){LVW[vic.id]=0;leviReset();if(vic.loc)die('You were swallowed whole.');else mpSend({t:'die',by:'You were swallowed whole.'},vic.id)}}
 
 /* ---------- The three islands ---------- */
 const ISL=[{x:-170,z:-190,R:44,H:6.5,K:11,n:'Fisher’s Cove'},{x:60,z:420,R:52,H:13,K:15,n:'The Hollow'},{x:410,z:-330,R:60,H:15,K:18,n:'Outpost Isle'}];
@@ -1666,7 +1666,7 @@ function zoneAudio(dt){SWAYU.value=T;if(!AC||scr!=='play')return;const und=PL.de
   if(cin){ZS.c-=dt;if(ZS.c<=0){ZS.c=rnd(1.5,5);snd('drip',near(6))}}
   VNT.forEach(v=>{if(Math.hypot(v.x-PL.x,v.z-PL.z)<45){ZS.v-=dt;if(ZS.v<=0){ZS.v=rnd(2,4);snd('vent_bubbles',new THREE.Vector3(v.x,v.y+2,v.z))}}});
   if(PL.depth>12){ZS.w-=dt;if(ZS.w<=0){ZS.w=rnd(70,160);const a=Math.random()*6.28;snd('whale',new THREE.Vector3(PL.x+Math.cos(a)*120,PL.y-10,PL.z+Math.sin(a)*120))}}}}
-const VERSION='Version 0.24.0, reefs and caves';let SIM=170,LCULL=140,FARUW=0,lcT=0;
+const VERSION='Version 0.24.1, fairer leviathan';let SIM=170,LCULL=140,FARUW=0,lcT=0;
 let OC=1200/260;
 function surfV(x,z){const x0=Math.floor(x/OC)*OC,z0=Math.floor(z/OC)*OC,fx=(x-x0)/OC,fz=(z-z0)/OC,a=wh(x0,z0,T),b=wh(x0+OC,z0,T),d=wh(x0,z0+OC,T),e=wh(x0+OC,z0+OC,T);return fx+fz<=1?a+(b-a)*fx+(d-a)*fz:e+(b-e)*(1-fz)+(d-e)*(1-fx)}
 function lootCull(dt){lcT-=dt;if(lcT>0)return;lcT=.4;const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z;loot.forEach(l=>{if(l.taken)return;const p=l.m.position;l.m.visible=Math.abs(p.x-hx)<LCULL&&Math.abs(p.z-hz)<LCULL})}
