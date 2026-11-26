@@ -211,7 +211,7 @@ function ui(){const d=scrDesc();
  if(mod){html(mod,$('box'));$('modal').classList.add('on');const b=$('box').querySelector('button');b&&b.focus()}else $('modal').classList.remove('on');
  const gm=inGame();lg.visible=scr==='main';if(saves[PL.cur])refreshBoat();WG.visible=gm;if(!gm){try{LPstop();disEnd(true);$('nav').textContent='';musicOff()}catch(e){}NU.value=0;DK.value=0;WA.value=1;SD.value.set(-.35,.1,-1).normalize();MD.value.set(.45,-.6,-1).normalize()}
  hemi.color.setHex(gm?0x6f8fd0:0xffd9c0);hemi.groundColor.setHex(gm?0x040c18:0x0b2a3a);hemi.intensity=gm?.5:.9;fill.visible=rim.visible=!gm;moon.visible=gm;
- if(!gm){S.fog=null;uw.visible=false;headL.visible=false;ocean.visible=true;FARUW=0;if(cam.far!==1500){cam.far=1500;cam.updateProjectionMatrix()}uw.scale.setScalar(1)}
+ if(!gm){S.fog=fogU;fogU.density=0;uw.visible=false;headL.visible=true;headL.intensity=0;ocean.visible=true;FARUW=0;if(cam.far!==1500){cam.far=1500;cam.updateProjectionMatrix()}uw.scale.setScalar(1)}
  $('hud').classList.toggle('on',(scr==='play'||scr==='cut'||scr==='rescue')&&!vr);$('hud').classList.toggle('cutm',scr==='cut'||scr==='rescue');$('hud').classList.toggle('cre',PL.mode==='creative');hudPs.forEach(m=>{if(m)m.visible=scr==='play'&&!!m.userData.left});pm.visible=vr&&scr!=='play'&&scr!=='cut'&&scr!=='rescue';AU.gm=gm;dirty=true}
 $('modal').onclick=e=>{if(e.target.id==='modal')shut()};addEventListener('keydown',e=>{if(e.key==='Escape'&&mod)shut()});
 
@@ -420,7 +420,7 @@ function world(dt){if(scr==='play'){tick(dt);listen(fw)}else if(scr==='cut')cutT
  floats.forEach(f=>{f.m.position.y=wh(f.m.position.x,f.m.position.z,T)+.15;f.m.rotation.y+=dt*.4});
  const bq=bL(PL.x,PL.z),op=Math.hypot(bq.x,bq.z-2.2)<2.2&&PL.y>boat.position.y?1.2:0;lids.forEach(l=>l.rotation.x+=(op-l.rotation.x)*Math.min(1,dt*5));CHM.forEach(o=>scrubPose(o,'open',lids[0].rotation.x/1.2));
  npcs.forEach((n,i)=>{n.rotation.z=Math.sin(T*.8+i)*.04;npcPose(n,i)});npcTick(dt);atTick(dt);todTick(dt);dzSim(dt);dzFx(dt);boatHint();flareTick(dt);ambTick(dt);dirTick(dt);rodTick(dt);mapTick(dt);zoneTick(dt);storyTick(dt);reviveTick(dt);tagTick(dt);respawnTick(dt);padTick(dt);tutTick(dt);zoneAudio(dt);oreTick(dt);loadTick(dt);fxTick(dt);eyesTick(dt);musicTick(dt);swimAnimTick(dt);kelp.forEach(k=>{if(Math.abs(k.position.x-PL.x)<110&&Math.abs(k.position.z-PL.z)<110)k.rotation.z=Math.sin(T*.7+k.userData.p)*.1});
- const surf=surfV(v3.x,v3.z),und=v3.y<surf+.08;AU.und=und;uw.visible=und;ocean.visible=!und;S.fog=und?fogU:null;headL.visible=und;if(und&&v3.y<surf-.5)FARUW=1;else if(!und)FARUW=0;{const wf=FARUW?150:1500;if(cam.far!==wf){cam.far=wf;cam.updateProjectionMatrix()}}uw.scale.setScalar(FARUW?.4:1);
+ const surf=surfV(v3.x,v3.z),und=v3.y<surf+.08;AU.und=und;uw.visible=und;ocean.visible=!und;S.fog=fogU;if(!und){fogU.density=0;headL.intensity=0}headL.visible=true;if(und&&v3.y<surf-.5)FARUW=1;else if(!und)FARUW=0;{const wf=FARUW?150:1500;if(cam.far!==wf){cam.far=wf;cam.updateProjectionMatrix()}}uw.scale.setScalar(FARUW?.4:1);
  if(und){const d=Math.max(0,surf-v3.y);lampTick(dt,d);uw.position.copy(v3);fogU.color.copy(c0).lerp(c1,Math.min(1,d/40));uw.material.color.copy(fogU.color);fogU.density=(.065+d*.0016)*CON.fog*(GFXC?GFXC.fogm:1);headL.position.copy(v3)}
  if(PL.tt>0)PL.tt-=dt;if((PL.hud-=dt)<=0){PL.hud=.2;hudUp()}}
 
@@ -1909,7 +1909,7 @@ function loadTick(dt){if(!LD.on)return;LD.t+=dt;const t=LD.t,T1=3.4,T2=4.4,T3=5,
  if(t>=T1&&t<T2)blk.style.opacity=(t-T1)/(T2-T1);
  if(t>=T2&&!LD.warm){LD.warm=true;Object.assign(PL,LD.sv);blk.style.opacity=1;try{R.compile(S,cam)}catch(e){}}
  if(t>=T3&&!LD.done){LD.done=true;finishLoad()}}
-function finishLoad(){const ov=$('ldr'),blk=ov.querySelector('.blk');LD.hid.forEach(o=>{o.visible=true});WG.remove(LD.sh.g);S.remove(LD.sh.mk);LD.sh=null;GFXC=LD.gfx;WT=LD.wt;CON.frozen=LD.cf;document.body.classList.remove('loading');headL.visible=false;LD.on=false;scr=LD.pscr;const cb=LD.cb;LD.cb=null;if(cb)cb();
+function finishLoad(){const ov=$('ldr'),blk=ov.querySelector('.blk');LD.hid.forEach(o=>{o.visible=true});WG.remove(LD.sh.g);S.remove(LD.sh.mk);LD.sh=null;GFXC=LD.gfx;WT=LD.wt;CON.frozen=LD.cf;document.body.classList.remove('loading');headL.intensity=0;headL.visible=true;LD.on=false;scr=LD.pscr;const cb=LD.cb;LD.cb=null;if(cb)cb();
  blk.style.transition='opacity .8s';requestAnimationFrame(()=>{blk.style.opacity=0});setTimeout(()=>{ov.style.display='none'},900)}
 /* ---------- Splitscreen: two players on one PC, built from two linked game windows ---------- */
 const SPQ=new URLSearchParams(location.search),SPL={wrap:SPQ.get('splitwrap'),role:SPQ.get('split'),slot:+SPQ.get('slot')||0,mode:SPQ.get('mode')||'survival',pad:SPQ.has('pad')?+SPQ.get('pad'):-9},SPC={p1:'kb',p2:'pad0',mode:'survival'};
@@ -1930,7 +1930,7 @@ if(SPL.wrap)buildSplit();
 else if(SPL.role){try{R.setPixelRatio(1)}catch(e){}
  if(SPL.role==='host')setTimeout(()=>{MP.hostPending=true;if(!saves[SPL.slot]){saves[SPL.slot]={mode:SPL.mode,created:Date.now(),day:1,time:0,deepest:0,crafted:0,deaths:0};store()}start(SPL.slot)},1500);
  else{setTimeout(()=>{ST.master=0},50);const d=document.createElement('div');d.style.cssText='position:fixed;left:0;right:0;top:45%;text-align:center;color:#e4f6fb;font:18px sans-serif;z-index:60;pointer-events:none;text-shadow:0 0 6px #000';d.textContent='Player 2: waiting for player 1 to start the game...';document.body.append(d);setInterval(()=>{d.style.display=MP.joined?'none':'block';if(!MP.role&&!LD.on)mpJoin('SPLIT')},2500)}}
-const VERSION='Version 0.28.7, fixes';let SIM=170,LCULL=140,FARUW=0,lcT=0;
+const VERSION='Version 0.28.8, fixes';let SIM=170,LCULL=140,FARUW=0,lcT=0;
 let OC=1200/260;
 function surfV(x,z){const x0=Math.floor(x/OC)*OC,z0=Math.floor(z/OC)*OC,fx=(x-x0)/OC,fz=(z-z0)/OC,a=wh(x0,z0,T),b=wh(x0+OC,z0,T),d=wh(x0,z0+OC,T),e=wh(x0+OC,z0+OC,T);return fx+fz<=1?a+(b-a)*fx+(d-a)*fz:e+(b-e)*(1-fz)+(d-e)*(1-fx)}
 function lootCull(dt){lcT-=dt;if(lcT>0)return;lcT=.4;const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z;loot.forEach(l=>{if(l.taken)return;const p=l.m.position;l.m.visible=Math.abs(p.x-hx)<LCULL&&Math.abs(p.z-hz)<LCULL})}
