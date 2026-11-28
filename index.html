@@ -397,7 +397,7 @@ function tick(dt){const in3=inputs(),mx=in3[0],mz=in3[1],su=in3[2],cr=PL.mode===
  const fl=Math.hypot(fw.x,fw.z)||1,fx=fw.x/fl,fz=fw.z/fl,bl0=bL(PL.x+ho.x,PL.z+ho.z),onB=!cr&&PL.y>=deck-(PL.onBoat?1:.15)&&inDeck(bl0,PL.onBoat?.25:0),full=under||cr,lh=islandH(PL.x,PL.z),onL=!onB&&!cr&&lh>surf-1.6&&PL.y<=lh+.8&&PL.y>=lh-1.7;
  if(PL.noBoard>0)PL.noBoard-=dt;if(PL.helm&&!onB){PL.helm=0;mpHelm(0)}PL.onBoat=onB;PL.onL=onL;const hm=PL.helm;BT.hand=false;if(hm){BT.thr=mz;BT.turn=mx;if(vr&&ST.vrow!==false&&gearOf().oars>=1){const g_=gearOf(),mm=g_.motor>=1?vrMotor(dt):null;if(!(g_.motor>=1))vrMotorIdle();if(mm&&mm.on){BT.thr=mm.t;BT.turn=mm.u;BT.hand=false;vrRowIdle(dt)}else{const rw=vrRow(dt);if(!(g_.motor>=1&&Math.abs(mz)>.1)){BT.thr=rw.t;BT.turn=rw.u;BT.hand=true}}}else{vrRowIdle(dt);vrMotorIdle()}}else{BT.thr=BT.turn=0;vrRowIdle(dt);vrMotorIdle()}if(vr&&under&&!PL.hint){PL.hint=1;toast('Hold a grip button and pull your arm through the water to swim.')}
  const dx=hm?0:(full?fw.x:fx)*mz-fz*mx,dz=hm?0:(full?fw.z:fz)*mz+fx*mx;
- if(onB||cr||onL){const spd=cr?5:onL?2.1:1.8;PL.x+=dx*spd*dt;PL.z+=dz*spd*dt;PL.vx=PL.vy=PL.vz=0;if(cr)PL.y+=((full?fw.y*mz*spd:0)+su*2)*dt;else if(onB){if(!inDeck(bL(PL.x+ho.x,PL.z+ho.z),.1))PL.noBoard=2.5}if(onL){const g2=islandH(PL.x,PL.z);if(g2>-1e8)PL.y+=(g2-PL.y)*Math.min(1,dt*14)}}
+ if(onB||cr||onL){const spd=cr?5:onL?2.1:1.8;PL.x+=dx*spd*dt;PL.z+=dz*spd*dt;PL.vx=PL.vy=PL.vz=0;if(cr&&vr&&ST.vfly!==false){if(!PL.fhint){PL.fhint=1;toast('Creative: hold a grip and pull your arm to fly. The stick still flies too.')}strokes(dt,true);const k2=Math.exp(-1.1*dt);FV.vx*=k2;FV.vy*=k2;FV.vz*=k2;const s2=Math.hypot(FV.vx,FV.vy,FV.vz);if(s2>16){const q2=16/s2;FV.vx*=q2;FV.vy*=q2;FV.vz*=q2}PL.x+=FV.vx*dt;PL.y+=FV.vy*dt;PL.z+=FV.vz*dt}else{FV.vx=FV.vy=FV.vz=0}if(cr)PL.y+=((full?fw.y*mz*spd:0)+su*2)*dt;else if(onB){if(!inDeck(bL(PL.x+ho.x,PL.z+ho.z),.1))PL.noBoard=2.5}if(onL){const g2=islandH(PL.x,PL.z);if(g2>-1e8)PL.y+=(g2-PL.y)*Math.min(1,dt*14)}}
  else{const th=(under?2.4:3.2)*finMul()*(PL.slow>0?.55:1),dy=(full?fw.y*mz:0)+su*.6;PL.vx+=dx*th*dt;PL.vy+=dy*th*dt;PL.vz+=dz*th*dt;strokes(dt);
   const k=Math.exp(-(under?1.3:2.2)*dt);PL.vx*=k;PL.vy*=k;PL.vz*=k;const sp=Math.hypot(PL.vx,PL.vy,PL.vz);if(sp>4){const q=4/sp;PL.vx*=q;PL.vy*=q;PL.vz*=q}
   PL.x+=PL.vx*dt;PL.y+=PL.vy*dt;PL.z+=PL.vz*dt}
@@ -420,7 +420,7 @@ function world(dt){if(scr==='play'){tick(dt);listen(fw)}else if(scr==='cut')cutT
  lant.intensity=1.3+Math.sin(T*9)*.12+Math.sin(T*23)*.08;
  floats.forEach(f=>{f.m.position.y=wh(f.m.position.x,f.m.position.z,T)+.15;f.m.rotation.y+=dt*.4});
  const bq=bL(PL.x,PL.z),op=Math.hypot(bq.x,bq.z-2.2)<2.2&&PL.y>boat.position.y?1.2:0;lids.forEach(l=>l.rotation.x+=(op-l.rotation.x)*Math.min(1,dt*5));CHM.forEach(o=>scrubPose(o,'open',lids[0].rotation.x/1.2));
- npcs.forEach((n,i)=>{n.rotation.z=Math.sin(T*.8+i)*.04;npcPose(n,i)});npcTick(dt);atTick(dt);todTick(dt);dzSim(dt);dzFx(dt);boatHint();flareTick(dt);ambTick(dt);dirTick(dt);rodTick(dt);mapTick(dt);zoneTick(dt);storyTick(dt);reviveTick(dt);tagTick(dt);respawnTick(dt);padTick(dt);tutTick(dt);zoneAudio(dt);oreTick(dt);loadTick(dt);fxTick(dt);eyesTick(dt);musicTick(dt);swimAnimTick(dt);kelp.forEach(k=>{if(Math.abs(k.position.x-PL.x)<110&&Math.abs(k.position.z-PL.z)<110)k.rotation.z=Math.sin(T*.7+k.userData.p)*.1});
+ npcs.forEach((n,i)=>{n.rotation.z=Math.sin(T*.8+i)*.04;npcPose(n,i)});npcTick(dt);atTick(dt);todTick(dt);dzSim(dt);dzFx(dt);boatHint();flareTick(dt);ambTick(dt);dirTick(dt);rodTick(dt);mapTick(dt);zoneTick(dt);storyTick(dt);reviveTick(dt);tagTick(dt);respawnTick(dt);crystalTick(dt);padTick(dt);tutTick(dt);zoneAudio(dt);oreTick(dt);loadTick(dt);fxTick(dt);eyesTick(dt);musicTick(dt);swimAnimTick(dt);kelp.forEach(k=>{if(Math.abs(k.position.x-PL.x)<110&&Math.abs(k.position.z-PL.z)<110)k.rotation.z=Math.sin(T*.7+k.userData.p)*.1});
  const surf=surfV(v3.x,v3.z),und=v3.y<surf+.08;AU.und=und;uw.visible=und;ocean.visible=!und;S.fog=fogU;if(!und){fogU.density=0;headL.intensity=0}headL.visible=true;if(und&&v3.y<surf-.5)FARUW=1;else if(!und)FARUW=0;{const wf=FARUW?150:1500;if(cam.far!==wf){cam.far=wf;cam.updateProjectionMatrix()}}uw.scale.setScalar(FARUW?.4:1);
  if(und){const d=Math.max(0,surf-v3.y);lampTick(dt,d);uw.position.copy(v3);fogU.color.copy(c0).lerp(c1,Math.min(1,d/40));uw.material.color.copy(fogU.color);fogU.density=(.065+d*.0016)*CON.fog*(GFXC?GFXC.fogm:1);headL.position.copy(v3)}
  if(PL.tt>0)PL.tt-=dt;if((PL.hud-=dt)<=0){PL.hud=.2;hudUp()}}
@@ -437,11 +437,11 @@ function hudUp(){const cr=PL.mode==='creative',B=[['Health',PL.hp,'#ff6b5e'],['O
  htex.needsUpdate=true}
 
 /* ---------- VR swim strokes, backpack and storage boxes ---------- */
-const SPv=[new THREE.Vector3(),new THREE.Vector3()],SPok=[0,0],hvv=new THREE.Vector3(),hww=new THREE.Vector3(),YA=new THREE.Vector3(0,1,0),PADP={},chestV=new THREE.Vector3();
-function strokes(dt){if(!vr||dt<=0)return;const ss=R.xr.getSession();if(!ss)return;
+const SPv=[new THREE.Vector3(),new THREE.Vector3()],SPok=[0,0],hvv=new THREE.Vector3(),hww=new THREE.Vector3(),YA=new THREE.Vector3(0,1,0),PADP={},chestV=new THREE.Vector3(),FV={vx:0,vy:0,vz:0};
+function strokes(dt,fly){if(!vr||dt<=0)return;const ss=R.xr.getSession();if(!ss)return;
  ctl.forEach((c,i)=>{const src=ss.inputSources[i],g=src&&src.gamepad,grip=!!(g&&g.buttons[1]&&g.buttons[1].pressed);hvv.copy(c.position).sub(cam.position);
   if(SPok[i]&&grip&&c.visible){hvv.sub(SPv[i]).divideScalar(dt);c.getWorldPosition(hww);const sp=hvv.length();
-   if(sp>.4&&hww.y<wh(hww.x,hww.z,T)-.02){hvv.applyAxisAngle(YA,PL.yaw);const gn=Math.min(1,(sp-.4)/1.4)*4*finMul()*ST.stroke*dt;PL.vx-=hvv.x*gn;PL.vy-=hvv.y*gn;PL.vz-=hvv.z*gn;
+   if(sp>.4&&(fly||hww.y<wh(hww.x,hww.z,T)-.02)){hvv.applyAxisAngle(YA,PL.yaw);const gn=Math.min(1,(sp-.4)/1.4)*(fly?13:4)*(fly?1:finMul())*ST.stroke*dt,V=fly?FV:PL;V.vx-=hvv.x*gn;V.vy-=hvv.y*gn;V.vz-=hvv.z*gn;
     if(g.hapticActuators&&g.hapticActuators[0])try{g.hapticActuators[0].pulse(Math.min(.6,sp*.2),30)}catch(e){}}}
   SPv[i].copy(c.position).sub(cam.position);SPok[i]=c.visible?1:0})}
 const IT={food:{n:'Canned food',s:'Food can',d:'Restores some hunger.',max:6,use:1},water:{n:'Water bottle',s:'Water',d:'Restores some thirst.',max:6,use:1},
@@ -605,7 +605,7 @@ function snd(k,p){if(!AC)return;const bf=pickBuf(k);if(bf){const s=AC.createBuff
  else if(k==='zzz'){}else if(k==='zap')noise(o,t,.4,'highpass',2500,7000,.9,.5,.004);else if(k==='flare')noise(o,t,1,'bandpass',2200,900,.7,.3,.05);else if(k==='splash2')noise(o,t,1.1,'highpass',1300,500,.7,.38,.03)}
 function listen(f){if(!AC)return;const L=AC.listener;if(L.positionX){L.positionX.value=v3.x;L.positionY.value=v3.y;L.positionZ.value=v3.z;L.forwardX.value=f.x;L.forwardY.value=f.y;L.forwardZ.value=f.z;L.upX.value=0;L.upY.value=1;L.upZ.value=0}else{L.setPosition(v3.x,v3.y,v3.z);L.setOrientation(f.x,f.y,f.z,0,1,0)}}
 /* ---------- Audio files: your own recordings replace the synthesized sounds ---------- */
-const BUF={},VOICE={end:0},SFXN=['scrape','boom','alarm','creak','creak2','creak3','scream','splash','rumble','roar','ping','bubbles','breath','gasp','heart','call','step_wood','step_sand','step_wade','swish','oar','woodcreak','pickup','craft','eat','drink','hurt','click','splash2','ambient','ambient_underwater','zap','flare','thunder','thunder_close','lightning','rain','wind','tornado','whirlpool','static','music_calm','music_tense','drip','whale','shrimp','vent_bubbles','mine'],VON=Array.from({length:11},(_,i)=>'voice_'+String(i+1).padStart(2,'0')).concat(['act_1','act_2','act_3','act_4','radio_01','radio_02','radio_03','radio_04','radio_05','radio_06','ending_1','ending_2','ending_3','ending_4','note_5','note_6','note_7']);
+const BUF={},VOICE={end:0},SFXN=['scrape','boom','alarm','creak','creak2','creak3','scream','splash','rumble','roar','ping','bubbles','breath','gasp','heart','call','step_wood','step_sand','step_wade','swish','oar','woodcreak','pickup','craft','eat','drink','hurt','click','splash2','ambient','ambient_underwater','zap','flare','thunder','thunder_close','lightning','rain','wind','tornado','whirlpool','static','music_calm','music_tense','music_menu','drip','whale','shrimp','vent_bubbles','mine'],VON=Array.from({length:11},(_,i)=>'voice_'+String(i+1).padStart(2,'0')).concat(['act_1','act_2','act_3','act_4','radio_01','radio_02','radio_03','radio_04','radio_05','radio_06','ending_1','ending_2','ending_3','ending_4','note_5','note_6','note_7']);
 async function loadOne(n){for(const e of ['mp3','ogg','wav']){try{const r=await fetch('audio/'+n+'.'+e);if(!r.ok)continue;BUF[n]=await AC.decodeAudioData(await r.arrayBuffer());if(n==='ambient')useAmbient();if(n==='ambient_underwater')useAmbientU();return}catch(x){}}}
 function loadAudio(){SFXN.concat(VON).forEach(loadOne)}
 function useAmbient(){try{ambSrc&&ambSrc.stop()}catch(e){}const s=AC.createBufferSource();s.buffer=BUF.ambient;s.loop=true;s.connect(amb);s.start();ambSrc=s}
@@ -1528,7 +1528,7 @@ function navText(){if(!(gearOf().compass>=1))return '';const h=cmpDeg(),s=saves[
 function mapTick(dt){if(scr!=='play')return;MAPT-=dt;if(MAPT>0)return;MAPT=1;const cx=Math.floor((PL.x+MAPR)/20),cz=Math.floor((PL.z+MAPR)/20);for(let i=-3;i<=3;i++)for(let j=-3;j<=3;j++){if(i*i+j*j>10)continue;const x=cx+i,z=cz+j;if(x>=0&&z>=0&&x<MAPN&&z<MAPN)MAPV[z*MAPN+x]=1}}
 function addMark(x,z){const s=saves[PL.cur];s.mk=s.mk||[];if(s.mk.length>=12){toast('Too many markers. Remove one on the map.');return}const n='ABCDEFGHIJKL'.split('').find(c=>!s.mk.some(m=>m.n===c));s.mk.push({x:Math.round(x),z:Math.round(z),n});store();toast('Marker '+n+' placed.')}
 function openMap(){document.exitPointerLock&&document.exitPointerLock();if(vr)fit(false);go('map')}
-function mapDesc(){const s=saves[PL.cur],W=2*MAPR;return{title:'Map',text:'North is up. Click the map to place or remove a marker or a tag. Only places you have been near are shown.',
+function mapDesc(){const s=saves[PL.cur],W=2*MAPR;return{title:'Map',text:'North is up. Click the map to place or remove a marker or a tag.'+(padAny()?' With a controller: move the cursor with the stick or D-pad, A places or removes a marker, B closes.':'')+' Only places you have been near are shown.',
  draw:(c,w,h)=>{const k=w/W,X=x=>(x+MAPR)*k,Y=z=>(z+MAPR)*k;c.fillStyle='#020a12';c.fillRect(0,0,w,h);
   for(let j=0;j<MAPN;j++)for(let i=0;i<MAPN;i++)if(MAPV[j*MAPN+i]){const x=i*20-MAPR+10,z=j*20-MAPR+10,d=Math.max(0,-sbH(x,z));c.fillStyle=islandH(x,z)>-1?'#5f8a4a':'hsl(205,55%,'+Math.max(10,38-d*.25)+'%)';c.fillRect(i*20*k,j*20*k,20*k+.6,20*k+.6)}
   c.strokeStyle='rgba(228,246,251,.12)';c.lineWidth=1;for(let g=-600;g<=600;g+=200){c.beginPath();c.moveTo(X(g),0);c.lineTo(X(g),h);c.moveTo(0,Y(g));c.lineTo(w,Y(g));c.stroke()}
@@ -1639,6 +1639,21 @@ function vrMotor(dt){const ss=R.xr.getSession(),mp=bup.motor&&bup.motor.userData
  const gas=trig[held]>.08?trig[held]:0,rev=trig[1-held]>.08?trig[1-held]:0,t=cl(gas-rev*.6,-.6,1),u=cl(-MOT.a/.6,-1,1);
  if(Math.abs(t)>.2){MOT.hp-=dt;if(MOT.hp<=0){MOT.hp=.25;const g=ss.inputSources[held]&&ss.inputSources[held].gamepad;if(g&&g.hapticActuators&&g.hapticActuators[0])try{g.hapticActuators[0].pulse(Math.min(.6,Math.abs(t)*.5),40)}catch(e){}}}
  return{on:true,t,u}}
+/* ---------- VR pickaxe: swing it at a rock ---------- */
+const PKM=(()=>{const g=new THREE.Group(),hm=mt(0x9aa3aa,.5,.6),sh=new THREE.Mesh(new THREE.CylinderGeometry(.022,.026,.78,8),mt(0x8a5a30,.9));sh.rotation.x=PI/2;sh.position.z=-.28;g.add(sh);const hd=new THREE.Mesh(new THREE.BoxGeometry(.5,.06,.07),hm);hd.position.z=-.66;g.add(hd);[-1,1].forEach(sd=>{const tp2=new THREE.Mesh(new THREE.ConeGeometry(.04,.14,6),hm);tp2.rotation.z=-sd*PI/2;tp2.position.set(sd*.3,0,-.66);g.add(tp2)});g.visible=false;g.userData.hm=hm;return g})();
+const PK={hi:-1,tier:0,cd:0,idle:0,ok:0,last:new THREE.Vector3()},PKP=new THREE.Vector3();
+function vrPick(dt,pk){const ss=R.xr.getSession();if(!ss)return;let hi=ss.inputSources.findIndex(q=>q&&q.handedness==='right');if(hi<0)hi=1;if(!ctl[hi])return;
+ if(PK.hi!==hi||PKM.parent!==ctl[hi]){ctl[hi].add(PKM);PKM.position.set(0,0,0);PKM.rotation.set(.35,0,0);PK.hi=hi}
+ const e=eye();let near=null,nd=1e9;for(const n of OREN){if(n.gone)continue;const d=Math.hypot(n.x-e.x,n.y+.5-e.y,n.z-e.z);if(d<7&&d<nd){nd=d;near=n}}
+ PKM.visible=!!near&&pk>0;if(pk&&PK.tier!==pk){PK.tier=pk;PKM.userData.hm.color.setHex([0,0x9aa3aa,0xc9b79a,0x3f7fe0][pk]||0x9aa3aa)}
+ if(!near){MN.id=null;MN.p=0;PK.ok=0;return}
+ if(!pk){hint('ore','Rocks with colored veins can be mined. Craft a pickaxe at the workbench, then swing it at the rock.');return}
+ PKM.updateWorldMatrix(true,false);PKP.set(0,0,-.66);PKM.localToWorld(PKP);let sp=0;if(PK.ok)sp=PKP.distanceTo(PK.last)/Math.max(dt,.001);PK.last.copy(PKP);PK.ok=1;PK.cd-=dt;
+ let hn=null,hd=.9;for(const n of OREN){if(n.gone)continue;const d=Math.hypot(n.x-PKP.x,n.y+.5-PKP.y,n.z-PKP.z);if(d<hd){hd=d;hn=n}}
+ if(!hn){if(MN.id!==null){PK.idle+=dt;if(PK.idle>4){MN.id=null;MN.p=0;PK.idle=0}}return}PK.idle=0;
+ if(sp>1.8&&PK.cd<=0){PK.cd=.32;const g=ss.inputSources[hi]&&ss.inputSources[hi].gamepad,hap=()=>{if(g&&g.hapticActuators&&g.hapticActuators[0])try{g.hapticActuators[0].pulse(.9,70)}catch(x){}};
+  if(hn.o.hard>pk){if(MN.w!==hn.i){MN.w=hn.i;toast(RAR[hn.o.r]+' '+hn.o.n+'. You need a better pickaxe.')}snd('mine',null);hap();return}
+  if(MN.id!==hn.i){MN.id=hn.i;MN.p=0}MN.p+=1.15;const need=[2.5,4,6][hn.o.hard-1]/(1+(pk-hn.o.hard)*.5);snd('mine',null);hap();toast('Mining '+hn.o.n+'... '+Math.min(100,Math.round(MN.p/need*100))+'%');if(MN.p>=need)mineNode(hn)}}
 /* ---------- Save backup and restore ---------- */
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 const bakPack=()=>JSON.stringify({game:'below-the-deep',v:1,t:Date.now(),saves:saves.slice(0,6),settings:(()=>{try{return JSON.parse(localStorage.getItem('btd_settings_v1')||'null')}catch(e){return null}})(),name:MP.name||''});
@@ -1677,6 +1692,38 @@ function remapEv(e){if(e._syn)return;if(KREB.on){e.stopImmediatePropagation();e.
 addEventListener('keydown',remapEv,true);addEventListener('keyup',remapEv,true);
 function ctlDesc(){return{title:'Controls',text:KREB.on?'Press the new key for "'+(KEYACT.find(x=>x[1]===KREB.act)||[''])[0]+'". Esc cancels.':'Click an action, then press the key you want. Gamepad: the left stick moves and the right stick looks. You can change the buttons under Controller layout (shown when a controller is connected).',
  btns:KEYACT.map(a=>({l:a[0]+': '+kname(kcur(a[1])),fn:()=>{KREB.on=1;KREB.act=a[1];ui()}})).concat([...(padAny()?[{l:'Controller layout',fn:()=>go('padctl')}]:[]),{l:'Reset to defaults',fn:()=>{KM={};ksave();ui()}},{l:'Done',fn:()=>go('settings')}])}}
+{const st=document.createElement('style');st.textContent='.padfocus{outline:3px solid #7fe3f0!important;outline-offset:3px;box-shadow:0 0 18px rgba(127,227,240,.65)!important}#padkb{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:95;background:rgba(2,10,18,.96);border:1px solid rgba(228,246,251,.5);border-radius:14px;padding:12px;display:grid;gap:6px}#padkb .r{display:flex;gap:6px;justify-content:center}#padkb button{min-width:46px;height:46px;font:inherit;font-size:1.05rem;color:#e4f6fb;background:rgba(3,16,26,.8);border:1px solid rgba(228,246,251,.4);border-radius:8px}#padkb .w{min-width:120px}#padcur{position:fixed;width:26px;height:26px;margin:-13px 0 0 -13px;border:2px solid #ffe34a;border-radius:50%;z-index:96;pointer-events:none;display:none}';document.head.append(st)}
+const PNAV={el:null,cx:innerWidth/2,cy:0,rep:0,held:'',act:false,mx:.5,my:.5,pb:{},in:false};
+addEventListener('mousemove',()=>{if(PNAV.act){PNAV.act=false;document.querySelectorAll('.padfocus').forEach(x=>x.classList.remove('padfocus'));const c=$('padcur');if(c)c.style.display='none'}});
+function padRoot(){return $('padkb')||(mod?$('box'):scr==='main'?$('mbtns'):$(scr))}
+function padCands(){const r=padRoot();if(!r)return[];return[...(r.id==='padkb'?r.querySelectorAll('button'):r.querySelectorAll('[data-f],input.mpin'))].filter(e=>e.offsetParent!==null&&!e.disabled)}
+function padFocus(el){document.querySelectorAll('.padfocus').forEach(x=>x.classList.remove('padfocus'));PNAV.el=el;if(el){el.classList.add('padfocus');const r=el.getBoundingClientRect();PNAV.cx=r.left+r.width/2;PNAV.cy=r.top+r.height/2;try{el.scrollIntoView({block:'nearest',inline:'nearest'})}catch(e){}}}
+function padNavMove(dx,dy){const cs=padCands();if(!cs.length)return;
+ if(!PNAV.el||!cs.includes(PNAV.el)){let best=null,bd=1e9;cs.forEach(e=>{const r=e.getBoundingClientRect(),d=Math.hypot(r.left+r.width/2-PNAV.cx,r.top+r.height/2-PNAV.cy);if(d<bd){bd=d;best=e}});padFocus(best);return}
+ let best=null,bs=1e9;cs.forEach(e=>{if(e===PNAV.el)return;const r=e.getBoundingClientRect(),vx=r.left+r.width/2-PNAV.cx,vy=r.top+r.height/2-PNAV.cy,al=vx*dx+vy*dy;if(al<=4)return;const pe=Math.abs(vx*dy-vy*dx),sc=al+pe*2.2;if(sc<bs){bs=sc;best=e}});if(best)padFocus(best)}
+function padKeys(inp){if($('padkb'))return;const kb=document.createElement('div');kb.id='padkb';const nm=inp.classList.contains('nm'),mx=inp.maxLength>0?inp.maxLength:12;let up=nm&&!inp.value;const lets=[];
+ const lab=()=>lets.forEach(k=>{k.textContent=(!nm||up)?k.dataset.c.toUpperCase():k.dataset.c.toLowerCase()}),add=c=>{if(inp.value.length<mx){inp.value+=c;inp.dispatchEvent(new Event('input'))}};
+ ['1234567890','QWERTYUIOP','ASDFGHJKL','ZXCVBNM'].forEach((r,ri)=>{const d=document.createElement('div');d.className='r';[...r].forEach(c=>{const k=document.createElement('button');k.dataset.c=c.toLowerCase();if(ri>0)lets.push(k);else k.textContent=c;k.onclick=()=>{const ch=ri===0?c:(!nm||up)?c.toUpperCase():c.toLowerCase();add(ch);if(nm&&ri>0&&up){up=false;lab()}};d.append(k)});
+  if(ri===3){const bs=document.createElement('button');bs.textContent='\u232B';bs.onclick=()=>{inp.value=inp.value.slice(0,-1);inp.dispatchEvent(new Event('input'))};d.append(bs)}kb.append(d)});
+ const last=document.createElement('div');last.className='r';
+ if(nm){const sh=document.createElement('button');sh.textContent='Shift';sh.onclick=()=>{up=!up;lab()};const sp=document.createElement('button');sp.className='w';sp.textContent='space';sp.onclick=()=>add(' ');last.append(sh,sp)}
+ const dn=document.createElement('button');dn.className='w';dn.textContent='Done';dn.onclick=()=>{kb.remove();PNAV.el=null;padNavMove(0,0)};last.append(dn);kb.append(last);lab();document.body.append(kb);PNAV.el=null;const f=kb.querySelector('button');padFocus(f)}
+function padBack(){const kb=$('padkb');if(kb){kb.remove();PNAV.el=null;return}const cs=padCands(),re=/^\s*(close|back|done|cancel|resume|no\b|continue|leave)/i,bt=cs.find(e=>re.test(e.textContent||''));if(bt){bt.click();return}if(mod){shut();return}if(isBag())closeBag()}
+function padMenu(g,dt,b,ax){const edge=i=>{const v=b(i),r=v&&!PNAV.pb[i];PNAV.pb[i]=v;return r};
+ if(!PNAV.in){PNAV.in=true;for(let i=0;i<17;i++)PNAV.pb[i]=b(i);return}
+ if(scr==='cut'){if(edge(0)||edge(9))endCut();return}
+ const A=edge(0),B=edge(1),ls=[g.axes[0]||0,g.axes[1]||0],mc=$('mapc'),mapMode=scr==='map'&&!mod&&!!mc&&!$('padkb'),cu=$('padcur')||(()=>{const d=document.createElement('div');d.id='padcur';document.body.append(d);return d})();
+ let dx=0,dy=0;if(b(12)||ls[1]<-.55)dy=-1;else if(b(13)||ls[1]>.55)dy=1;else if(b(14)||ls[0]<-.55)dx=-1;else if(b(15)||ls[0]>.55)dx=1;
+ if(dx||dy||A||B)PNAV.act=true;
+ if(mapMode){const r=mc.getBoundingClientRect();PNAV.mx=cl(PNAV.mx+((b(15)?1:b(14)?-1:0)+(Math.abs(ls[0])>.2?ls[0]:0))*dt*.55,0,1);PNAV.my=cl(PNAV.my+((b(13)?1:b(12)?-1:0)+(Math.abs(ls[1])>.2?ls[1]:0))*dt*.55,0,1);
+  cu.style.display=PNAV.act?'block':'none';cu.style.left=(r.left+PNAV.mx*r.width)+'px';cu.style.top=(r.top+PNAV.my*r.height)+'px';
+  if(A)mc.dispatchEvent(new MouseEvent('click',{clientX:r.left+PNAV.mx*r.width,clientY:r.top+PNAV.my*r.height,bubbles:true}));if(B)padBack();return}
+ cu.style.display='none';
+ if(dx||dy){const key=dx+','+dy;if(PNAV.held!==key){PNAV.held=key;PNAV.rep=.38;padNavMove(dx,dy)}else{PNAV.rep-=dt;if(PNAV.rep<=0){PNAV.rep=.11;padNavMove(dx,dy)}}}else PNAV.held='';
+ if(PNAV.act){const cs=padCands();if(cs.length&&(!PNAV.el||!cs.includes(PNAV.el)))padNavMove(0,0);PNAV.el&&PNAV.el.classList.add('padfocus')}
+ const sy=ax(3);if(sy){const r=padRoot(),sc=r&&r.scrollHeight>r.clientHeight+2?r:document.scrollingElement;if(sc)sc.scrollTop+=sy*700*dt}
+ if(A&&PNAV.el&&document.contains(PNAV.el)){if(PNAV.el.matches('input.mpin'))padKeys(PNAV.el);else PNAV.el.click()}
+ if(B)padBack()}
 const PADACT=[['Swim up','Space',0],['Swim down','ShiftLeft',1],['Interact / bag','KeyE',2],['Journal','KeyJ',3],['Sonar ping','KeyP',4],['Flashlight','KeyL',5],['Decoy','KeyG',6],['Flare','KeyR',7],['Tag','KeyT',8],['Pause','Escape',9],['Fish','KeyV',10],['Map','KeyM',12],['Place marker','KeyN',13],['Shocker','KeyH',14],['Helm / oars','KeyF',15]],
  PADN=['A','B','X','Y','LB','RB','LT','RT','Back','Start','L3 (left stick press)','R3 (right stick press)','D-pad up','D-pad down','D-pad left','D-pad right','Home'],SENS=[.5,.75,1,1.25,1.5,2];
 let GPC={map:{},inv:0,sens:1};try{const o=JSON.parse(localStorage.getItem('btd_pad_v1')||'null');if(o&&typeof o==='object')GPC=Object.assign(GPC,{map:o.map||{},inv:o.inv?1:0,sens:+o.sens||1})}catch(e){}
@@ -1690,6 +1737,7 @@ function padTick(dt){if(vr||!navigator.getGamepads)return;const g=padSel();
  const ax=i=>Math.abs(g.axes[i]||0)>.2?g.axes[i]:0,b=i=>!!(g.buttons[i]&&g.buttons[i].pressed),set=(k,v)=>{if(v!==!!GPD[k]){GPD[k]=v;keys[k]=v?1:0}};
  if(GREB.on){const cur=[];for(let k=0;k<g.buttons.length;k++)cur[k]=b(k);if(!GPD.cp)GPD.cp=cur.slice();else{for(let k=0;k<cur.length;k++)if(cur[k]&&!GPD.cp[k]){const a=PADACT.find(x=>x[1]===GREB.act),old=padBtn(a),o=PADACT.find(x=>x[1]!==a[1]&&padBtn(x)===k);if(o){GPC.map[o[1]]=old;if(old===o[2])delete GPC.map[o[1]]}GPC.map[a[1]]=k;if(k===a[2])delete GPC.map[a[1]];gpSave();GREB.on=0;GPD.cp=null;GPD.p=cur.slice();ui();return}GPD.cp=cur}return}
  set('KeyA',ax(0)<-.35);set('KeyD',ax(0)>.35);set('KeyW',ax(1)<-.35);set('KeyS',ax(1)>.35);set('Space',b(padBtn(PADACT[0])));set('ShiftLeft',b(padBtn(PADACT[1])));
+ if(scr==='play')PNAV.in=false;else padMenu(g,dt,b,ax);
  if(scr==='play'||scr==='cut'){PL.yaw-=ax(2)*dt*2.6*GPC.sens;PL.pitch=Math.max(-1.5,Math.min(1.5,PL.pitch-ax(3)*dt*1.9*GPC.sens*(GPC.inv?-1:1)))}
  const M={};PADACT.forEach(a=>{if(a[1]!=='Space'&&a[1]!=='ShiftLeft')M[padBtn(a)]=a[1]});
  for(const i in M){const d=b(+i);if(d&&!GPD.p[i]){const n=new KeyboardEvent('keydown',{code:M[i],key:M[i]==='Escape'?'Escape':M[i].replace('Key','').toLowerCase(),bubbles:true,cancelable:true});n._syn=1;window.dispatchEvent(n);const u=new KeyboardEvent('keyup',{code:M[i],bubbles:true});u._syn=1;window.dispatchEvent(u)}GPD.p[i]=d}}
@@ -1732,8 +1780,10 @@ function musicInit(){if(!AC||!AMBG)return false;if(MU.on&&MU.bus===AMBG)return t
  else{[[55,.05],[82.4,.035],[110.3,.03],[164.9,.012]].forEach(a=>osc(a[0],a[1],MU.cg));const sw=AC.createOscillator(),sg=AC.createGain();sw.frequency.value=.06;sg.gain.value=.12;sw.connect(sg);sg.connect(MU.cg.gain);sw.start();
   [[233.1,.03,'sine'],[246.9,.03,'sine'],[466.2,.01,'triangle']].forEach(a=>osc(a[0],a[1],MU.tg,a[2]));const sub=AC.createOscillator(),sb=AC.createGain(),pl=AC.createOscillator(),pg=AC.createGain();sub.frequency.value=41.2;sb.gain.value=.07;sub.connect(sb);sb.connect(MU.tg);sub.start();pl.frequency.value=1.15;pg.gain.value=.07;pl.connect(pg);pg.connect(sb.gain);pl.start()}
  return true}
-function musicTick(dt){if(!musicInit())return;const tg=dangerLevel();MU.lv+=(tg-MU.lv)*Math.min(1,dt*(tg>MU.lv?.8:.25));MU.g.gain.value+=(1-MU.g.gain.value)*Math.min(1,dt*.5);MU.cg.gain.value=.55*(1-MU.lv*.7)*(PL.depth>.5?1:.8);MU.tg.gain.value=MU.lv*.9}
+function musicTick(dt){if(!musicInit())return;const tg=dangerLevel();MU.lv+=(tg-MU.lv)*Math.min(1,dt*(tg>MU.lv?.8:.25));MU.g.gain.value+=(.75-MU.g.gain.value)*Math.min(1,dt*.5);MU.cg.gain.value=.55*(1-MU.lv*.7)*(PL.depth>.5?1:.8);MU.tg.gain.value=MU.lv*.9}
 function musicOff(){MU.lv=0;if(MU.g)MU.g.gain.value=0}
+const MM={g:null,bus:null};
+function menuMusicTick(dt){if(!AC||!AMBG||!BUF.music_menu)return;if(!MM.g||MM.bus!==AMBG){MM.bus=AMBG;MM.g=AC.createGain();MM.g.gain.value=0;MM.g.connect(AMBG);const sr2=AC.createBufferSource();sr2.buffer=BUF.music_menu;sr2.loop=true;sr2.connect(MM.g);sr2.start()}const tg=gm?0:1;MM.g.gain.value+=(tg-MM.g.gain.value)*Math.min(1,dt*(tg?.8:1.6))}
 /* ---------- Console in VR: an on-screen keyboard on the menu panel ---------- */
 const VK={line:'',off:0,hist:[],hi:0,log:['Creative console. Tap the keys, or the shortcut words above them.']};
 function vkType(c){VK.line+=c;ui()}
@@ -1870,6 +1920,8 @@ function mkCave(sp,rot,an,vi){
   inside=l=>{if(l.y<-1||l.y>CH+2.5)return false;if(Math.hypot(l.x-C[0],l.z-C[1])<R+1.2)return true;return rects.some(r=>{const dx=l.x-r.x,dz=l.z-r.z,c=Math.cos(r.a),s2=Math.sin(r.a),lx=dx*c+dz*s2,lz=-dx*s2+dz*c;return Math.abs(lx)<r.hw&&lz<2&&lz>-r.len-2})};
  CAVES.push({x:sp.x,z:sp.z,fr,ax:ap.x,ay:ap.y,az:ap.z,an:!!an,ch:chl,inside})}
 {const avoid=[[-5,-24,60],[FRP.x,FRP.z,70],[TRP.x,TRP.z,60],[-300,-120,60],[ICE.x,ICE.z,170]];[[1,18,38,0,false],[2,30,48,1,false],[3,100,122,2,true]].forEach(c=>{const sp=caveSpot(c[0],c[1],c[2],avoid);if(sp){avoid.push([sp.x,sp.z,90]);mkCave(sp,(c[0]+c[3])%4,c[4],c[3])}})}
+const CRY={in:false};
+function crystalTick(dt){if(scr!=='play'||PL.mode==='creative')return;const cx=TEMPLE.x,cy=TEMPLE.y+3.2,cz=TEMPLE.z-9,e=vr?v3:{x:PL.x,y:PL.y+1,z:PL.z};if(Math.hypot(e.x-cx,(e.y-cy)*.7,e.z-cz)<22){if(!CRY.in){CRY.in=true;toast('The crystal hums. Your wounds close, and the water gives way to air.')}PL.hp=Math.min(100,PL.hp+dt*12);PL.fd=Math.min(100,PL.fd+dt*9);PL.wt=Math.min(100,PL.wt+dt*9);PL.o2=100}else CRY.in=false}
 const rn7=(()=>{let a=0x9e3779b9;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}})();
 {const sp2=(type,n,r0,r1,d0,d1)=>{let k=0,t=0;while(k<n&&t++<2500){const a=rn7()*6.2832,r=r0+rn7()*(r1-r0),x=Math.cos(a)*r,z=Math.sin(a)*r,h=sbH(x,z);if(-h<d0||-h>d1||islandH(x,z)>-4)continue;if(Math.hypot(x-ICE.x,z-ICE.z)<150||Math.hypot(x-TRP.x,z-TRP.z)<25)continue;addLoot(type,GP(x,z));k++}};
  sp2('scrap',46,20,300,12,110);sp2('cable',22,25,320,12,110);sp2('battery',8,60,330,30,120);sp2('fuel',6,60,330,30,120);sp2('food',16,22,260,10,90);sp2('water',16,22,260,10,90)}
@@ -1919,7 +1971,7 @@ const OREN=[],ZR=new THREE.Matrix4().makeScale(0,0,0),MN={id:null,p:0,w:-1,snd:0
 function oreHide(n){if(n.gone)return;n.gone=true;n.m.setMatrixAt(n.k,ZR);n.m.instanceMatrix.needsUpdate=true;if(n.gl)n.gl.visible=false}
 function oreApply(){const s=saves[PL.cur],mm=new Set((s&&s.mined)||[]);OREN.forEach(n=>{if(mm.has(n.i))oreHide(n);else if(n.gone){n.gone=false;n.m.setMatrixAt(n.k,n.M);n.m.instanceMatrix.needsUpdate=true;if(n.gl)n.gl.visible=true}})}
 function mineNode(n){const s=saves[PL.cur],q=[3,2,2,1,1][n.o.r]+(Math.random()<.5?1:0);let left=addTo(invOf(),n.o.id,q);if(left>0)left=addTo(chestOf(1),n.o.id,left);oreHide(n);(s.mined=s.mined||[]).push(n.i);mpEv({e:'mine',id:n.i});store();snd('mine',null);toast('Mined '+(q-left)+' x '+n.o.n+' ('+RAR[n.o.r]+').'+(left?' Your bags are full.':''));MN.p=0;MN.id=null}
-function oreTick(dt){if(scr!=='play'||PL.helm)return;const pk=gearOf().pickaxe||0,e=eye();let best=null,bd=1e9;
+function oreTick(dt){if(scr!=='play'||PL.helm){PKM.visible=false;return}const pk=gearOf().pickaxe||0,e=eye();if(vr&&ST.vpick!==false){vrPick(dt,pk);return}let best=null,bd=1e9;
  for(const n of OREN){if(n.gone)continue;const dx=n.x-e.x,dy=n.y+.5-e.y,dz=n.z-e.z,d=Math.hypot(dx,dy,dz);if(d<(pk?3.4:4.5)&&d<bd&&(dx*fw.x+dy*fw.y+dz*fw.z)/d>.6){bd=d;best=n}}
  if(!best){MN.id=null;MN.p=0;return}
  if(!pk){hint('ore','Rocks with colored veins can be mined. Craft a pickaxe at the workbench, then stand close and look at the rock.');return}
@@ -1964,7 +2016,7 @@ if(SPL.wrap)buildSplit();
 else if(SPL.role){try{R.setPixelRatio(1)}catch(e){}
  if(SPL.role==='host')setTimeout(()=>{MP.hostPending=true;if(!saves[SPL.slot]){saves[SPL.slot]={mode:SPL.mode,created:Date.now(),day:1,time:0,deepest:0,crafted:0,deaths:0};store()}start(SPL.slot)},1500);
  else{setTimeout(()=>{ST.master=0},50);const d=document.createElement('div');d.style.cssText='position:fixed;left:0;right:0;top:45%;text-align:center;color:#e4f6fb;font:18px sans-serif;z-index:60;pointer-events:none;text-shadow:0 0 6px #000';d.textContent='Player 2: waiting for player 1 to start the game...';document.body.append(d);setInterval(()=>{d.style.display=MP.joined?'none':'block';if(!MP.role&&!LD.on)mpJoin('SPLIT')},2500)}}
-const VERSION='Version 0.29.1, islands';let SIM=170,LCULL=140,FARUW=0,lcT=0;
+const VERSION='Version 0.30.0, controller';let SIM=170,LCULL=140,FARUW=0,lcT=0;
 let OC=1200/260;
 function surfV(x,z){const x0=Math.floor(x/OC)*OC,z0=Math.floor(z/OC)*OC,fx=(x-x0)/OC,fz=(z-z0)/OC,a=wh(x0,z0,T),b=wh(x0+OC,z0,T),d=wh(x0,z0+OC,T),e=wh(x0+OC,z0+OC,T);return fx+fz<=1?a+(b-a)*fx+(d-a)*fz:e+(b-e)*(1-fz)+(d-e)*(1-fx)}
 function lootCull(dt){lcT-=dt;if(lcT>0)return;lcT=.4;const hx=vr?v3.x:PL.x,hz=vr?v3.z:PL.z;loot.forEach(l=>{if(l.taken)return;const p=l.m.position;l.m.visible=Math.abs(p.x-hx)<LCULL&&Math.abs(p.z-hz)<LCULL})}
@@ -1997,7 +2049,7 @@ function toggleFs(){const d=document,e=d.documentElement;try{if(fsEl())(d.exitFu
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{if(scr==='settings')ui()}));
 function settingsDesc(){const pc=v=>Math.round(v*100)+'%',A=(l,v,dec,inc)=>({l,v,dec,inc}),vol=(k,l)=>A(l,pc(ST[k]),()=>stSet(k,Math.max(0,+(ST[k]-.1).toFixed(2))),()=>stSet(k,Math.min(1,+(ST[k]+.1).toFixed(2))));
  const tab=SETTAB,g=gfxCur(),cu=ST.quality==='custom',cg=(l,k,f)=>A(l,f(g[k]),()=>cgStep(k,-1),()=>cgStep(k,1)),adj=[],btns=[];
- if(tab==='general')adj.push(vol('master','Master volume'),vol('sfx','Effects'),vol('voice','Voice'),vol('amb','Ambience and music'),A('Subtitles',ST.subs?'On':'Off',tgl('subs'),tgl('subs')),A('Tutorial guide',ST.hints===false?'Off':'On',()=>stSet('hints',ST.hints===false),()=>stSet('hints',ST.hints===false)),...(fsOK()?[A('Fullscreen',fsOn()?'On':'Off',toggleFs,toggleFs)]:[]),...(vr?[A('Immersive rowing',ST.vrow===false?'Off':'On',()=>stSet('vrow',ST.vrow===false),()=>stSet('vrow',ST.vrow===false))]:[]));
+ if(tab==='general')adj.push(vol('master','Master volume'),vol('sfx','Effects'),vol('voice','Voice'),vol('amb','Ambience and music'),A('Subtitles',ST.subs?'On':'Off',tgl('subs'),tgl('subs')),A('Tutorial guide',ST.hints===false?'Off':'On',()=>stSet('hints',ST.hints===false),()=>stSet('hints',ST.hints===false)),...(fsOK()?[A('Fullscreen',fsOn()?'On':'Off',toggleFs,toggleFs)]:[]),...(vr?[A('Immersive rowing',ST.vrow===false?'Off':'On',()=>stSet('vrow',ST.vrow===false),()=>stSet('vrow',ST.vrow===false)),A('Immersive pickaxe',ST.vpick===false?'Off':'On',()=>stSet('vpick',ST.vpick===false),()=>stSet('vpick',ST.vpick===false)),A('Immersive creative flying',ST.vfly===false?'Off':'On',()=>stSet('vfly',ST.vfly===false),()=>stSet('vfly',ST.vfly===false))]:[]));
  else if(tab==='controls'){adj.push(A('Turning',ST.turn==='snap'?'Snap':'Smooth',tgl('turn'),tgl('turn')),A('Comfort vignette',ST.vign?'On':'Off',tgl('vign'),tgl('vign')),A('Stroke strength',pc(ST.stroke),()=>stSet('stroke',Math.max(.5,+(ST.stroke-.1).toFixed(2))),()=>stSet('stroke',Math.min(1.5,+(ST.stroke+.1).toFixed(2)))));
   if(vr)btns.push({l:'Calibrate',fn:()=>{calBack='settings';go('calib')}});else{if(!coarse)btns.push({l:'Remap keys',fn:()=>go('controls')});if(padAny())btns.push({l:'Controller layout',fn:()=>go('padctl')})}btns.push({l:'Replay tutorial',fn:replayTut})}
  else{adj.push(A('Graphics',GNAME[ST.quality]||'High',()=>gfxPick(-1),()=>gfxPick(1)));
@@ -2009,7 +2061,7 @@ function settingsDesc(){const pc=v=>Math.round(v*100)+'%',A=(l,v,dec,inc)=>({l,v
 function useAmbientU(){const s=AC.createBufferSource();s.buffer=BUF.ambient_underwater;s.loop=true;s.connect(ambU);s.start()}
 /* living soundscape: muffled underwater, breathing, heartbeat, deep calls, steps, strokes, boat noises */
 const AU={gm:false,und:false,last:false,bt:3,hb:1,call:35,step:0,sw:0,oar:0,ck:10,lx:0,lz:0,lb:false,mo:null};
-function audioTick(dt){if(!AC||!LPF)return;const now=AC.currentTime,gm=AU.gm,und=AU.und&&gm,d=Math.max(0,PL.depth||0),play=scr==='play';
+function audioTick(dt){if(!AC||!LPF)return;menuMusicTick(dt);const now=AC.currentTime,gm=AU.gm,und=AU.und&&gm,d=Math.max(0,PL.depth||0),play=scr==='play';
  LPF.frequency.setTargetAtTime(und?Math.max(380,900-d*5):22000,now,.12);
  amb.gain.setTargetAtTime(gm?(und?.04:.3):0,now,.4);ambU.gain.setTargetAtTime(und?.35+Math.min(.4,d/160):0,now,.4);
  if(und!==AU.last){AU.last=und;if(play&&gm)snd('splash2')}
